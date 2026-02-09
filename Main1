@@ -28,6 +28,7 @@ local Themes = {
 		accent = Color3.fromRGB(110, 100, 255),
 		particleColor = Color3.fromRGB(110, 100, 255),
 		toggleColor = Color3.fromRGB(110, 100, 255) -- Match primary
+		toggleTransparency = 0
 	},
 	{
 		name = "Crimson Blood",
@@ -41,6 +42,7 @@ local Themes = {
 		accent = Color3.fromRGB(255, 50, 50),
 		particleColor = Color3.fromRGB(255, 50, 50),
 		toggleColor = Color3.fromRGB(255, 50, 50) -- Match primary
+		toggleTransparency = 0
 	},
 	{
 		name = "Deep Emerald",
@@ -54,6 +56,7 @@ local Themes = {
 		accent = Color3.fromRGB(50, 255, 100),
 		particleColor = Color3.fromRGB(50, 255, 100),
 		toggleColor = Color3.fromRGB(50, 255, 100) -- Match primary
+		toggleTransparency = 0
 	},
 	{
 		name = "Ocean Abyss",
@@ -67,6 +70,7 @@ local Themes = {
 		accent = Color3.fromRGB(0, 150, 255),
 		particleColor = Color3.fromRGB(0, 150, 255),
 		toggleColor = Color3.fromRGB(0, 150, 255) -- Match primary
+		toggleTransparency = 0
 	},
 	{
 		name = "Amethyst Void",
@@ -80,6 +84,7 @@ local Themes = {
 		accent = Color3.fromRGB(180, 50, 255),
 		particleColor = Color3.fromRGB(180, 50, 255),
 		toggleColor = Color3.fromRGB(180, 50, 255) -- Match primary
+		toggleTransparency = 0
 	},
 	{
 		name = "Cyberpunk Neon",
@@ -93,6 +98,7 @@ local Themes = {
 		accent = Color3.fromRGB(255, 0, 255),
 		particleColor = Color3.fromRGB(0, 255, 255),
 		toggleColor = Color3.fromRGB(255, 0, 255) -- Match primary
+		toggleTransparency = 0
 	},
 	{
 		name = "Golden Luxury",
@@ -106,6 +112,7 @@ local Themes = {
 		accent = Color3.fromRGB(255, 215, 0),
 		particleColor = Color3.fromRGB(255, 215, 0),
 		toggleColor = Color3.fromRGB(255, 215, 0) -- Match primary
+		toggleTransparency = 0
 	},
 	{
 		name = "Inferno Orange",
@@ -119,6 +126,7 @@ local Themes = {
 		accent = Color3.fromRGB(255, 100, 0),
 		particleColor = Color3.fromRGB(255, 100, 0),
 		toggleColor = Color3.fromRGB(255, 100, 0) -- Match primary
+		toggleTransparency = 0
 	},
 	{
 		name = "Liquid Glass",
@@ -132,6 +140,7 @@ local Themes = {
 		accent = Color3.fromRGB(0, 122, 255),         
 		particleColor = Color3.fromRGB(100, 200, 255),
 		toggleColor = Color3.fromRGB(120, 120, 130),  -- Grey for toggles
+		toggleTransparency = 0.78,
 		isGlass = true,
 		glassTransparency = 0.58,
 		blurSize = 18
