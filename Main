@@ -595,6 +595,9 @@ function MythicalUI:CreateWindow(config)
 	Window.isMinimized = false
 	Window.miniButton = miniButton  -- Store reference for keybind access
 	
+	-- Store original transparency values for proper restoration
+	local savedTransparencies = {}
+	
 	-- Function to minimize UI
 	local function minimizeUI()
 		if isMinimized then return end
@@ -602,20 +605,53 @@ function MythicalUI:CreateWindow(config)
 		isMinimized = true
 		Window.isMinimized = true
 		
-		-- Just hide, don't resize to 0 (preserves children)
+		-- Save and hide all elements
+		savedTransparencies = {}
+		
+		-- Save mainFrame transparency
+		savedTransparencies[mainFrame] = {BackgroundTransparency = mainFrame.BackgroundTransparency}
 		tween(mainFrame, {BackgroundTransparency = 1}, 0.2)
+		
 		for _, child in ipairs(mainFrame:GetDescendants()) do
-			if child:IsA("GuiObject") then
+			local saved = {}
+			
+			-- Save and hide GuiObject backgrounds
+			if child:IsA("GuiObject") and child.Name ~= "MiniOrb" then
+				saved.BackgroundTransparency = child.BackgroundTransparency
 				pcall(function()
 					tween(child, {BackgroundTransparency = 1}, 0.2)
 				end)
 			end
+			
+			-- Save and hide text
 			if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
+				saved.TextTransparency = child.TextTransparency
 				pcall(function()
 					tween(child, {TextTransparency = 1}, 0.2)
 				end)
 			end
+			
+			-- Save and hide UIStroke
+			if child:IsA("UIStroke") then
+				saved.UIStrokeTransparency = child.Transparency
+				pcall(function()
+					tween(child, {Transparency = 1}, 0.2)
+				end)
+			end
+			
+			-- Save and hide ImageLabel/ImageButton
+			if child:IsA("ImageLabel") or child:IsA("ImageButton") then
+				saved.ImageTransparency = child.ImageTransparency
+				pcall(function()
+					tween(child, {ImageTransparency = 1}, 0.2)
+				end)
+			end
+			
+			if next(saved) then
+				savedTransparencies[child] = saved
+			end
 		end
+		
 		task.wait(0.2)
 		mainFrame.Visible = false
 		miniButton.Visible = true
@@ -635,24 +671,27 @@ function MythicalUI:CreateWindow(config)
 		miniButton.Visible = false
 		mainFrame.Visible = true
 		
-		-- Restore transparency
-		tween(mainFrame, {BackgroundTransparency = 0}, 0.2)
-		for _, child in ipairs(mainFrame:GetDescendants()) do
-			if child:IsA("Frame") and child.Name ~= "MiniGlow" then
+		-- Restore all saved transparencies
+		for obj, props in pairs(savedTransparencies) do
+			if obj and obj.Parent then
 				pcall(function()
-					if child.BackgroundTransparency > 0.5 then
-						-- Keep transparent items transparent
-					else
-						tween(child, {BackgroundTransparency = 0}, 0.2)
+					if props.BackgroundTransparency then
+						tween(obj, {BackgroundTransparency = props.BackgroundTransparency}, 0.2)
+					end
+					if props.TextTransparency then
+						tween(obj, {TextTransparency = props.TextTransparency}, 0.2)
+					end
+					if props.UIStrokeTransparency then
+						tween(obj, {Transparency = props.UIStrokeTransparency}, 0.2)
+					end
+					if props.ImageTransparency then
+						tween(obj, {ImageTransparency = props.ImageTransparency}, 0.2)
 					end
 				end)
 			end
-			if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
-				pcall(function()
-					tween(child, {TextTransparency = 0}, 0.2)
-				end)
-			end
 		end
+		
+		savedTransparencies = {}
 	end
 	
 	-- Store functions for external access
