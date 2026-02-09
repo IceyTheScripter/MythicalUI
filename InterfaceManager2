@@ -1,34 +1,88 @@
+-- MYTHICAL UI - INTERFACE MANAGER
+-- Theme and settings management for MythicalUI
+
 local httpService = game:GetService("HttpService")
+
 local InterfaceManager = {} do
-    InterfaceManager.Folder = "MythicalSettings"
-    InterfaceManager.Settings = { Theme = "Dark", MenuKeybind = "LeftControl" }
+	InterfaceManager.Folder = "MythicalSettings"
+	InterfaceManager.Settings = {
+		Theme = "Purple Mystic",
+		MenuKeybind = "LeftControl"
+	}
 
-    function InterfaceManager:SetLibrary(library) self.Library = library end
-    function InterfaceManager:SetFolder(folder) self.Folder = folder end
+	function InterfaceManager:SetFolder(folder)
+		self.Folder = folder
+		self:BuildFolderTree()
+	end
 
-    function InterfaceManager:BuildInterfaceSection(tab)
-        local section = tab:AddSection("Interface")
-        
-        -- Use the Library's theme list
-        local themeList = self.Library.Themes or {"Dark", "Light", "Purple Mystic"}
+	function InterfaceManager:SetLibrary(library)
+		self.Library = library
+	end
 
-        local themeDropdown = section:AddDropdown("InterfaceTheme", {
-            Title = "Theme",
-            Values = themeList,
-            Default = self.Settings.Theme,
-            Callback = function(v)
-                self.Library:SetTheme(v)
-                self.Settings.Theme = v
-            end
-        })
+	function InterfaceManager:BuildFolderTree()
+		local paths = {}
 
-        local keybind = section:AddKeybind("MenuKeybind", {
-            Title = "Minimize Key",
-            Default = self.Settings.MenuKeybind,
-        })
-        keybind:OnChanged(function()
-            self.Library.MinimizeKeybind = keybind.Value
-        end)
-    end
+		local parts = self.Folder:split("/")
+		for idx = 1, #parts do
+			paths[#paths + 1] = table.concat(parts, "/", 1, idx)
+		end
+
+		table.insert(paths, self.Folder)
+		table.insert(paths, self.Folder .. "/settings")
+
+		for i = 1, #paths do
+			local str = paths[i]
+			if not isfolder(str) then
+				makefolder(str)
+			end
+		end
+	end
+
+	function InterfaceManager:SaveSettings()
+		writefile(self.Folder .. "/options.json", httpService:JSONEncode(InterfaceManager.Settings))
+	end
+
+	function InterfaceManager:LoadSettings()
+		local path = self.Folder .. "/options.json"
+		if isfile(path) then
+			local data = readfile(path)
+			local success, decoded = pcall(httpService.JSONDecode, httpService, data)
+
+			if success then
+				for i, v in next, decoded do
+					InterfaceManager.Settings[i] = v
+				end
+			end
+		end
+	end
+
+	function InterfaceManager:BuildInterfaceSection(tab)
+		assert(self.Library, "Must set InterfaceManager.Library")
+		local Library = self.Library
+		local Settings = InterfaceManager.Settings
+
+		InterfaceManager:LoadSettings()
+
+		tab:AddParagraph({
+			Title = "Interface Settings",
+			Content = "Customize your Mythical UI experience"
+		})
+
+		-- Theme selector
+		local themeNames = Library:GetThemes()
+		
+		local InterfaceTheme = tab:AddDropdown("InterfaceTheme", {
+			Title = "Theme",
+			Values = themeNames,
+			Callback = function(Value)
+				Library:SetTheme(Value)
+				Settings.Theme = Value
+				InterfaceManager:SaveSettings()
+			end
+		})
+
+		InterfaceTheme:SetValue(Settings.Theme or "Purple Mystic")
+	end
 end
+
 return InterfaceManager
