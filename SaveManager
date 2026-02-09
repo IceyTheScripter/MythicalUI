@@ -1,11 +1,10 @@
 local httpService = game:GetService("HttpService")
 
 local SaveManager = {} do
-	SaveManager.Folder = "MythicalUISettings"
-    SaveManager.Settings = {
-        Theme = "Purple Mystic",
-        MenuKeybind = "LeftControl"
-    }
+	SaveManager.Folder = "MythicalScriptHub/game-configs"
+    SaveManager.Settings = {}
+    SaveManager.IgnoreThemeSettings = false
+    SaveManager.IgnoreIndexes = {}
 
     function SaveManager:SetFolder(folder)
 		self.Folder = folder
@@ -16,16 +15,22 @@ local SaveManager = {} do
 		self.Library = library
 	end
 
+    function SaveManager:IgnoreThemeSettings()
+        self.IgnoreThemeSettings = true
+    end
+
+    function SaveManager:SetIgnoreIndexes(indexes)
+        self.IgnoreIndexes = indexes
+    end
+
     function SaveManager:BuildFolderTree()
 		local paths = {}
-
 		local parts = self.Folder:split("/")
 		for idx = 1, #parts do
 			paths[#paths + 1] = table.concat(parts, "/", 1, idx)
 		end
-
 		table.insert(paths, self.Folder)
-		table.insert(paths, self.Folder .. "/settings")
+		table.insert(paths, self.Folder .. "/configs")
 
 		for i = 1, #paths do
 			local str = paths[i]
@@ -36,11 +41,11 @@ local SaveManager = {} do
 	end
 
     function SaveManager:SaveSettings()
-        writefile(self.Folder .. "/options.json", httpService:JSONEncode(SaveManager.Settings))
+        writefile(self.Folder .. "/config.json", httpService:JSONEncode(SaveManager.Settings))
     end
 
     function SaveManager:LoadSettings()
-        local path = self.Folder .. "/options.json"
+        local path = self.Folder .. "/config.json"
         if isfile(path) then
             local data = readfile(path)
             local success, decoded = pcall(httpService.JSONDecode, httpService, data)
@@ -53,26 +58,42 @@ local SaveManager = {} do
         end
     end
 
-    function SaveManager:BuildInterfaceSection(tab)
+    function SaveManager:BuildConfigSection(tab)
         assert(self.Library, "Must set SaveManager.Library")
-		local Library = self.Library
-        local Settings = SaveManager.Settings
-
+        
         SaveManager:LoadSettings()
-
-		-- Theme selector
-		local themeDropdown = tab:AddDropdown("ThemeSelector", {
-			Title = "Theme",
-			Values = Library:GetThemes(),
-			Default = Settings.Theme,
-			Callback = function(Value)
-				Library:SetTheme(Value)
-                Settings.Theme = Value
+        
+        -- Add config management UI here
+        tab:AddButton({
+            Title = "Save Config",
+            Description = "Save current settings",
+            Callback = function()
                 SaveManager:SaveSettings()
-			end
-		})
+                self.Library:Notify({
+                    Title = "Config",
+                    Content = "Settings saved!",
+                    Duration = 3
+                })
+            end
+        })
 
-        themeDropdown:SetValue(Settings.Theme)
+        tab:AddButton({
+            Title = "Load Config",
+            Description = "Load saved settings",
+            Callback = function()
+                SaveManager:LoadSettings()
+                self.Library:Notify({
+                    Title = "Config",
+                    Content = "Settings loaded!",
+                    Duration = 3
+                })
+            end
+        })
+    end
+
+    function SaveManager:LoadAutoloadConfig()
+        -- Load config marked as autoload
+        SaveManager:LoadSettings()
     end
 end
 
