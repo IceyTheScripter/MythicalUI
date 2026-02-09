@@ -128,7 +128,7 @@ local Themes = {
 	}
 }
 
-local currentTheme = Themes[math.random(1, #Themes)]
+local currentTheme = Themes[9] -- Default to Liquid Glass
 print("🎨 Mythical UI Theme: " .. currentTheme.name)
 
 -- SOUND IDS
@@ -2093,6 +2093,28 @@ function MythicalUI:CreateWindow(config)
 		Default = currentTheme.name,
 		Callback = function(value)
 			Window:SetTheme(value)
+		end
+	})
+	
+	ConfigSystem.Ignore["ThemeSelector"] = true
+	
+	-- Theme Section
+	settingsTab:AddParagraph({
+		Title = "Appearance",
+		Content = "Change the look of the UI"
+	})
+	
+	local themeNames = {}
+	for _, th in ipairs(Themes) do
+		table.insert(themeNames, th.name)
+	end
+	
+	settingsTab:AddDropdown("ThemeSelector", {
+		Title = "Select Theme",
+		Values = themeNames,
+		Default = currentTheme.name,
+		Callback = function(val)
+			Window:SetTheme(val)
 		end
 	})
 	
