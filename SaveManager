@@ -1,0 +1,84 @@
+local httpService = game:GetService("HttpService")
+local SaveManager = {} do
+    SaveManager.Folder = "MythicalSettings"
+    SaveManager.Ignore = {}
+    SaveManager.Options = {} 
+
+    function SaveManager:SetLibrary(library)
+        self.Library = library
+        -- If your library has a central table, use it, otherwise use our registry
+        self.Options = library.Options or self.Options
+    end
+
+    function SaveManager:RegisterOption(idx, object)
+        self.Options[idx] = object
+    end
+
+    function SaveManager:SetFolder(folder)
+        self.Folder = folder;
+        self:BuildFolderTree()
+    end
+
+    function SaveManager:BuildFolderTree()
+        if not isfolder(self.Folder) then makefolder(self.Folder) end
+        if not isfolder(self.Folder .. "/settings") then makefolder(self.Folder .. "/settings") end
+    end
+
+    function SaveManager:Save(name)
+        if not name then return false end
+        local fullPath = self.Folder .. "/settings/" .. name .. ".json"
+        local data = { objects = {} }
+
+        for idx, option in next, self.Options do
+            if self.Ignore[idx] then continue end
+            -- Save logic (Simplified for Mythical)
+            table.insert(data.objects, {idx = idx, value = option.Value, type = option.Type})
+        end 
+        writefile(fullPath, httpService:JSONEncode(data))
+        return true
+    end
+
+    function SaveManager:Load(name)
+        local file = self.Folder .. "/settings/" .. name .. ".json"
+        if not isfile(file) then return false end
+        local decoded = httpService:JSONDecode(readfile(file))
+
+        for _, data in next, decoded.objects do
+            if self.Options[data.idx] then
+                self.Options[data.idx]:SetValue(data.value)
+            end
+        end
+        return true
+    end
+
+    function SaveManager:BuildConfigSection(tab)
+        local section = tab:AddSection("Configuration")
+        section:AddInput("SaveManager_ConfigName", { Title = "Config Name", Default = "default" })
+        
+        section:AddButton({
+            Title = "Save Config",
+            Callback = function()
+                local name = self.Options.SaveManager_ConfigName.Value
+                self:Save(name)
+            end
+        })
+
+        section:AddButton({
+            Title = "Load Config",
+            Callback = function()
+                local name = self.Options.SaveManager_ConfigName.Value
+                self:Load(name)
+            end
+        })
+    end
+    
+    function SaveManager:IgnoreThemeSettings()
+        self.Ignore["InterfaceTheme"] = true
+        self.Ignore["MenuKeybind"] = true
+    end
+    
+    function SaveManager:LoadAutoloadConfig()
+        self:Load("default")
+    end
+end
+return SaveManager
