@@ -479,62 +479,45 @@ function MythicalUI:CreateWindow(config)
 	miniButton.Size = UDim2.new(0, 50, 0, 50)
 	miniButton.Position = UDim2.new(0, 20, 0.5, 0)
 	miniButton.AnchorPoint = Vector2.new(0, 0.5)
-	miniButton.BackgroundColor3 = currentTheme.primary
-	miniButton.BackgroundTransparency = 0.1
+	miniButton.BackgroundColor3 = Color3.fromRGB(10, 10, 15)  -- Black/dark background
+	miniButton.BackgroundTransparency = 0
 	miniButton.BorderSizePixel = 0
 	miniButton.ClipsDescendants = true
 	-- Use first letter of title or "M" for Mythical
 	local titleInitial = string.sub(config.Title or "M", 1, 1)
 	miniButton.Text = titleInitial
-	miniButton.TextColor3 = currentTheme.text
+	miniButton.TextColor3 = currentTheme.primary  -- Theme colored text
 	miniButton.TextSize = 22
 	miniButton.Font = Enum.Font.GothamBold
 	miniButton.Visible = false
 	miniButton.ZIndex = 100
 	miniButton.Parent = screenGui
 	
-	table.insert(Window._themeObjects, {obj = miniButton, prop = "BackgroundColor3", colorKey = "primary"})
-	table.insert(Window._themeObjects, {obj = miniButton, prop = "TextColor3", colorKey = "text"})
+	-- Update text color with theme
+	table.insert(Window._themeObjects, {obj = miniButton, prop = "TextColor3", colorKey = "primary"})
 	
 	local miniButtonCorner = Instance.new("UICorner")
 	miniButtonCorner.CornerRadius = UDim.new(1, 0)  -- Fully round
 	miniButtonCorner.Parent = miniButton
 	
 	local miniButtonStroke = Instance.new("UIStroke")
-	miniButtonStroke.Color = currentTheme.secondary
+	miniButtonStroke.Color = currentTheme.primary  -- Theme colored outline
 	miniButtonStroke.Thickness = 2
-	miniButtonStroke.Transparency = 0.2
+	miniButtonStroke.Transparency = 0
 	miniButtonStroke.Parent = miniButton
 	
-	table.insert(Window._themeObjects, {obj = miniButtonStroke, prop = "Color", colorKey = "secondary"})
+	table.insert(Window._themeObjects, {obj = miniButtonStroke, prop = "Color", colorKey = "primary"})
 	
-	-- Add glow effect frame behind mini button
-	local miniGlow = Instance.new("Frame")
-	miniGlow.Name = "MiniGlow"
-	miniGlow.Size = UDim2.new(0, 70, 0, 70)
-	miniGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
-	miniGlow.AnchorPoint = Vector2.new(0.5, 0.5)
-	miniGlow.BackgroundColor3 = currentTheme.particleColor
-	miniGlow.BackgroundTransparency = 0.85
-	miniGlow.BorderSizePixel = 0
-	miniGlow.ZIndex = 99
-	miniGlow.Parent = miniButton
-	
-	local miniGlowCorner = Instance.new("UICorner")
-	miniGlowCorner.CornerRadius = UDim.new(1, 0)
-	miniGlowCorner.Parent = miniGlow
-	
-	table.insert(Window._themeObjects, {obj = miniGlow, prop = "BackgroundColor3", colorKey = "particleColor"})
-	
-	-- Floating particles around mini button
+	-- Floating orbs inside mini button (small 2-3px themed particles)
 	local miniParticles = {}
-	for i = 1, 6 do
+	for i = 1, 5 do
 		local particle = Instance.new("Frame")
-		particle.Size = UDim2.new(0, math.random(3, 6), 0, math.random(3, 6))
+		particle.Name = "MiniOrb"
+		particle.Size = UDim2.new(0, math.random(2, 3), 0, math.random(2, 3))
 		particle.Position = UDim2.new(0.5, 0, 0.5, 0)
 		particle.AnchorPoint = Vector2.new(0.5, 0.5)
-		particle.BackgroundColor3 = currentTheme.particleColor
-		particle.BackgroundTransparency = 0.4
+		particle.BackgroundColor3 = currentTheme.primary
+		particle.BackgroundTransparency = 0.2
 		particle.BorderSizePixel = 0
 		particle.ZIndex = 101
 		particle.Parent = miniButton
@@ -544,45 +527,29 @@ function MythicalUI:CreateWindow(config)
 		particleCorner.Parent = particle
 		
 		table.insert(miniParticles, particle)
-		table.insert(Window._themeObjects, {obj = particle, prop = "BackgroundColor3", colorKey = "particleColor"})
+		table.insert(Window._themeObjects, {obj = particle, prop = "BackgroundColor3", colorKey = "primary"})
 		
-		-- Orbit animation for particles
+		-- Float animation for orbs inside the button
 		task.spawn(function()
-			local angle = (i / 6) * math.pi * 2
-			local radius = 30
-			local speed = 0.5 + math.random() * 0.5
+			local angle = (i / 5) * math.pi * 2
+			local radius = 12 + math.random(0, 5)  -- Stay inside the button
+			local speed = 0.3 + math.random() * 0.4
 			
 			while particle.Parent do
-				angle = angle + (0.02 * speed)
+				angle = angle + (0.03 * speed)
 				local x = math.cos(angle) * radius
 				local y = math.sin(angle) * radius
 				
 				tween(particle, {
 					Position = UDim2.new(0.5, x, 0.5, y),
-					BackgroundTransparency = 0.3 + math.random() * 0.4,
-					Size = UDim2.new(0, math.random(3, 6), 0, math.random(3, 6))
-				}, 0.5)
+					BackgroundTransparency = 0.1 + math.random() * 0.3,
+					Size = UDim2.new(0, math.random(2, 3), 0, math.random(2, 3))
+				}, 0.8)
 				
-				task.wait(0.5)
+				task.wait(0.8)
 			end
 		end)
 	end
-	
-	-- Pulsing glow animation
-	task.spawn(function()
-		while miniGlow.Parent do
-			tween(miniGlow, {
-				Size = UDim2.new(0, 80, 0, 80),
-				BackgroundTransparency = 0.7
-			}, 1)
-			task.wait(1)
-			tween(miniGlow, {
-				Size = UDim2.new(0, 60, 0, 60),
-				BackgroundTransparency = 0.9
-			}, 1)
-			task.wait(1)
-		end
-	end)
 	
 	-- Mini button dragging with drag distance tracking
 	local miniDragging = false
