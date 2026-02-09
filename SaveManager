@@ -1,149 +1,122 @@
 -- ========================
--- Mythical SaveManager
+-- Fixed Mythical SaveManager
 -- ========================
 local HttpService = game:GetService("HttpService")
 
 local SaveManager = {} do
-    SaveManager.Folder = "MythicalScriptHub/game-configs"
+    SaveManager.Folder = "MythicalScriptHub"
     SaveManager.Settings = {}
-    SaveManager.OptionsRegistry = {} -- Stores all UI elements
+    SaveManager.Options = {} -- This is the magic table
     SaveManager.IgnoreThemeSettings = false
     SaveManager.IgnoreIndexes = {}
     SaveManager.Library = nil
 
-    -- Set the folder for configs
     function SaveManager:SetFolder(folder)
         self.Folder = folder
         self:BuildFolderTree()
     end
 
-    -- Connect the UI library
     function SaveManager:SetLibrary(library)
         self.Library = library
-    end
-
-    -- Ignore theme settings in save
-    function SaveManager:IgnoreThemeSettings()
-        self.IgnoreThemeSettings = true
-    end
-
-    function SaveManager:SetIgnoreIndexes(indexes)
-        self.IgnoreIndexes = indexes
-    end
-
-    -- Make folder structure
-    function SaveManager:BuildFolderTree()
-        local paths = {}
-        local parts = self.Folder:split("/")
-        for idx = 1, #parts do
-            table.insert(paths, table.concat(parts, "/", 1, idx))
-        end
-        table.insert(paths, self.Folder .. "/configs")
-
-        for _, path in next, paths do
-            if not isfolder(path) then
-                makefolder(path)
-            end
+        -- Link the library's options if they exist
+        if library.Options then
+            self.Options = library.Options
         end
     end
 
-    -- Register a UI element for saving/loading
+    -- Use this to manually register if your Library doesn't have a central Options table
     function SaveManager:RegisterOption(key, element)
-        self.OptionsRegistry[key] = element
+        self.Options[key] = element
     end
 
-    -- Save all registered options
-    function SaveManager:SaveSettings()
-        local saveTable = {}
-        for key, element in next, self.OptionsRegistry do
-            if not table.find(self.IgnoreIndexes, key) then
-                if element.Type == "Toggle" or element.Type == "Slider" or element.Type == "Dropdown" or element.Type == "Input" then
-                    saveTable[key] = element:GetValue()
-                elseif element.Type == "Colorpicker" then
-                    saveTable[key] = {
-                        Color = element:GetValue(),
-                        Transparency = element.Transparency or 0
-                    }
-                end
+    function SaveManager:IgnoreThemeSettings()
+        self:SetIgnoreIndexes({ "InterfaceTheme", "AcrylicToggle", "TransparentToggle", "MenuKeybind" })
+    end
+
+    function SaveManager:SetIgnoreIndexes(list)
+        for _, key in next, list do
+            self.IgnoreIndexes[key] = true
+        end
+    end
+
+    function SaveManager:BuildFolderTree()
+        if not isfolder(self.Folder) then makefolder(self.Folder) end
+        local settingsPath = self.Folder .. "/settings"
+        if not isfolder(settingsPath) then makefolder(settingsPath) end
+    end
+
+    function SaveManager:Save(name)
+        name = name or "config"
+        local fullPath = self.Folder .. "/settings/" .. name .. ".json"
+        local data = {}
+
+        for idx, option in next, self.Options do
+            if self.IgnoreIndexes[idx] then continue end
+            
+            -- Checks if it's a standard UI element
+            if option.Type == "Colorpicker" then
+                data[idx] = { 
+                    color = option.Value:ToHex(), 
+                    transparency = option.Transparency 
+                }
+            else
+                -- Fallback: Use .Value or :GetValue()
+                data[idx] = option.Value
             end
         end
 
-        if self.IgnoreThemeSettings and saveTable.Theme then
-            saveTable.Theme = nil
-        end
-
-        writefile(self.Folder .. "/config.json", HttpService:JSONEncode(saveTable))
+        writefile(fullPath, HttpService:JSONEncode(data))
+        return true
     end
 
-    -- Load all registered options
-    function SaveManager:LoadSettings()
-        local path = self.Folder .. "/config.json"
-        if isfile(path) then
-            local data = readfile(path)
-            local success, decoded = pcall(HttpService.JSONDecode, HttpService, data)
-            if success and decoded then
-                for key, value in next, decoded do
-                    local element = self.OptionsRegistry[key]
-                    if element then
-                        if element.Type == "Colorpicker" then
-                            element:SetValueRGB(value.Color)
-                            if value.Transparency then
-                                element.Transparency = value.Transparency
-                            end
-                        else
-                            element:SetValue(value)
-                        end
-                    end
-                    self.Settings[key] = value
+    function SaveManager:Load(name)
+        name = name or "config"
+        local file = self.Folder .. "/settings/" .. name .. ".json"
+        if not isfile(file) then return false end
+
+        local success, decoded = pcall(HttpService:JSONDecode(readfile(file)))
+        if not success then return false end
+
+        for idx, value in next, decoded do
+            local option = self.Options[idx]
+            if option then
+                if option.Type == "Colorpicker" then
+                    option:SetValueRGB(Color3.fromHex(value.color), value.transparency)
+                else
+                    option:SetValue(value)
                 end
             end
         end
+        return true
     end
 
-    -- Build Settings tab automatically
     function SaveManager:BuildConfigSection(tab)
         assert(self.Library, "SaveManager.Library must be set!")
+        local section = tab:AddSection("Configuration")
 
-        local buttons = {
-            {Title = "Save Config", Callback = function()
-                self:SaveSettings()
-                self.Library:Notify({
-                    Title = "Config Saved",
-                    Content = "Your settings have been saved!",
-                    Duration = 3
-                })
-            end},
+        section:AddInput("ConfigName", { Title = "Config Name", Default = "default" })
 
-            {Title = "Load Config", Callback = function()
-                self:LoadSettings()
-                self.Library:Notify({
-                    Title = "Config Loaded",
-                    Content = "Your settings have been loaded!",
-                    Duration = 3
-                })
-            end},
+        section:AddButton({
+            Title = "Save Config",
+            Callback = function()
+                local name = self.Options.ConfigName.Value
+                self:Save(name)
+                self.Library:Notify({ Title = "Success", Content = "Saved " .. name, Duration = 3 })
+            end
+        })
 
-            {Title = "Reset to Defaults", Callback = function()
-                for key, element in next, self.OptionsRegistry do
-                    element:SetValue(element.Default)
-                end
-                self:SaveSettings()
-                self.Library:Notify({
-                    Title = "Reset",
-                    Content = "Settings reset to defaults!",
-                    Duration = 3
-                })
-            end}
-        }
-
-        for _, btn in next, buttons do
-            tab:AddButton(btn)
-        end
+        section:AddButton({
+            Title = "Load Config",
+            Callback = function()
+                local name = self.Options.ConfigName.Value
+                self:Load(name)
+                self.Library:Notify({ Title = "Success", Content = "Loaded " .. name, Duration = 3 })
+            end
+        })
     end
 
-    -- Auto-load config at startup
     function SaveManager:LoadAutoloadConfig()
-        self:LoadSettings()
+        self:Load("config")
     end
 end
 
