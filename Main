@@ -379,9 +379,11 @@ function MythicalUI:CreateWindow(config)
 	
 	table.insert(Window._themeObjects, {obj = stroke, prop = "Color", colorKey = "primary"})
 	
-	-- Particles
+	-- Particles (Tracked for theme updates)
+	Window.Particles = {}
 	for i = 1, 15 do
-		createParticle(mainFrame, currentTheme)
+		local p = createParticle(mainFrame, currentTheme)
+		table.insert(Window.Particles, p)
 	end
 	
 	-- Top Bar
@@ -399,113 +401,170 @@ function MythicalUI:CreateWindow(config)
 	topCorner.CornerRadius = UDim.new(0, 12)
 	topCorner.Parent = topBar
 	
-	-- LIQUID GLASS EFFECTS (only when isGlass theme is active)
-	if currentTheme.isGlass then
-		local glassTransparency = currentTheme.glassTransparency or 0.58
-		local blurSize = currentTheme.blurSize or 18
+	-- GLASS UPDATE FUNCTION (Handles creation and toggling)
+	function Window:UpdateGlass(theme)
+		local isGlass = theme.isGlass
+		local glassTransparency = theme.glassTransparency or 0.58
+		local blurSize = theme.blurSize or 18
 		
-		-- 1. GLOBAL BLUR (Managed)
-		local blurEffect = Instance.new("BlurEffect")
-		blurEffect.Size = blurSize
-		blurEffect.Parent = game:GetService("Lighting")
-		Window.BlurEffect = blurEffect -- Store for toggle/cleanup
-		
-		-- 2. MAIN GLASS FRAME (clean, refractive background)
-		mainFrame.BackgroundColor3 = currentTheme.background
-		mainFrame.BackgroundTransparency = glassTransparency
-		
-		-- 3. DEPTH GRADIENT
-		local depthGradient = Instance.new("UIGradient")
-		depthGradient.Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 210, 230)) -- Subtle blue-shift at bottom
-		})
-		depthGradient.Rotation = 90
-		depthGradient.Parent = mainFrame
-		
-		-- 4. REFRACTION OVAL (The "Shiny" bit)
-		local refraction = Instance.new("Frame")
-		refraction.Name = "RefractionLayer"
-		refraction.Size = UDim2.fromScale(1.9, 1.1)
-		refraction.Position = UDim2.fromScale(-0.45, -0.65)
-		refraction.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-		refraction.BackgroundTransparency = 0.83
-		refraction.ZIndex = 2
-		refraction.Parent = mainFrame
-		
-		local refractCorner = Instance.new("UICorner")
-		refractCorner.CornerRadius = UDim.new(1, 0)
-		refractCorner.Parent = refraction
-		
-		local refractFade = Instance.new("UIGradient")
-		refractFade.Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 1),
-			NumberSequenceKeypoint.new(0.22, 0.25),
-			NumberSequenceKeypoint.new(0.55, 0.9),
-			NumberSequenceKeypoint.new(1, 1)
-		})
-		refractFade.Rotation = 110
-		refractFade.Parent = refraction
-		
-		-- 5. TRIPLE STROKE STACK (Simulated via nested frames for reliability)
-		-- We use invisible frames to hold the extra strokes safely
-		
-		-- Stroke 1: INNER CUT (Sharp edge) - Applied to MainFrame
-		local innerStroke = Instance.new("UIStroke")
-		innerStroke.Name = "InnerStroke"
-		innerStroke.Thickness = 1
-		innerStroke.Color = Color3.fromRGB(255, 255, 255)
-		innerStroke.Transparency = 0.6
-		innerStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-		innerStroke.Parent = mainFrame
-		
-		-- Stroke 2: MID REFRACTIVE EDGE
-		local midFrame = Instance.new("Frame")
-		midFrame.Name = "MidStrokeFrame"
-		midFrame.Size = UDim2.new(1, 0, 1, 0)
-		midFrame.BackgroundTransparency = 1
-		midFrame.ZIndex = 1
-		midFrame.Parent = mainFrame
-		
-		local midCorner = Instance.new("UICorner")
-		midCorner.CornerRadius = UDim.new(0, 12)
-		midCorner.Parent = midFrame
-		
-		local midStroke = Instance.new("UIStroke")
-		midStroke.Thickness = 2
-		midStroke.Color = Color3.fromRGB(230, 240, 255)
-		midStroke.Transparency = 0.35
-		midStroke.Parent = midFrame
-		
-		-- Stroke 3: OUTER GLOW (Cool tint)
-		local outerFrame = Instance.new("Frame")
-		outerFrame.Name = "OuterStrokeFrame"
-		outerFrame.Size = UDim2.new(1, 0, 1, 0)
-		outerFrame.BackgroundTransparency = 1
-		outerFrame.ZIndex = 0
-		outerFrame.Parent = mainFrame
-		
-		local outerCorner = Instance.new("UICorner")
-		outerCorner.CornerRadius = UDim.new(0, 12)
-		outerCorner.Parent = outerFrame
-		
-		local outerStroke = Instance.new("UIStroke")
-		outerStroke.Thickness = 3
-		outerStroke.Color = Color3.fromRGB(170, 210, 255)
-		outerStroke.Transparency = 0.75
-		outerStroke.Parent = outerFrame
-		
-		-- Remove default stroke
-		stroke:Destroy()
-		
-		-- 6. MICRO REFRACTION ANIMATION
-		task.spawn(function()
-			while refraction.Parent do
-				tween(refraction, {Position = UDim2.fromScale(-0.3, -0.7)}, 6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut).Completed:Wait()
-				tween(refraction, {Position = UDim2.fromScale(-0.5, -0.55)}, 6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut).Completed:Wait()
+		-- 1. Handle Blur
+		if isGlass then
+			if not Window.BlurEffect then
+				local blur = Instance.new("BlurEffect")
+				blur.Size = 0 -- Start at 0 and tween
+				blur.Parent = game:GetService("Lighting")
+				Window.BlurEffect = blur
 			end
-		end)
+			tween(Window.BlurEffect, {Size = blurSize}, 0.5)
+		else
+			if Window.BlurEffect then
+				tween(Window.BlurEffect, {Size = 0}, 0.5)
+				-- Destroy after tween? No, keep it for reuse or destroy in SetTheme?
+				-- Let's keep it but size 0, or destroy if we want clean Lighting.
+				-- For performance, let's destroy it after delay, but for simplicity, allow it to stay if we switch back.
+				-- Actually, user wants "Liquid Glass" to be distinct.
+				-- Let's just set Size to 0.
+			end
+		end
+		
+		-- 2. Handle Main Transparency
+		if isGlass then
+			tween(mainFrame, {BackgroundTransparency = glassTransparency}, 0.5)
+			tween(topBar, {BackgroundTransparency = glassTransparency}, 0.5)
+			-- Disable default stroke
+			stroke.Enabled = false
+		else
+			tween(mainFrame, {BackgroundTransparency = 0}, 0.5)
+			tween(topBar, {BackgroundTransparency = 0}, 0.5)
+			-- Enable default stroke
+			stroke.Enabled = true
+		end
+		
+		-- 3. Handle Refraction Layer
+		if isGlass then
+			-- Create if missing
+			if not Window.RefractionLayer then
+				-- DEPTH GRADIENT
+				local depthGradient = Instance.new("UIGradient")
+				depthGradient.Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 210, 230))
+				})
+				depthGradient.Rotation = 90
+				depthGradient.Parent = mainFrame
+				Window.DepthGradient = depthGradient
+				
+				-- REFRACTION OVAL
+				local refraction = Instance.new("Frame")
+				refraction.Name = "RefractionLayer"
+				refraction.Size = UDim2.fromScale(1.9, 1.1)
+				refraction.Position = UDim2.fromScale(-0.45, -0.65)
+				refraction.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+				refraction.BackgroundTransparency = 0.83
+				refraction.ZIndex = 2
+				refraction.Parent = mainFrame
+				Window.RefractionLayer = refraction
+				
+				local refractCorner = Instance.new("UICorner")
+				refractCorner.CornerRadius = UDim.new(1, 0)
+				refractCorner.Parent = refraction
+				
+				local refractFade = Instance.new("UIGradient")
+				refractFade.Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 1),
+					NumberSequenceKeypoint.new(0.22, 0.25),
+					NumberSequenceKeypoint.new(0.55, 0.9),
+					NumberSequenceKeypoint.new(1, 1)
+				})
+				refractFade.Rotation = 110
+				refractFade.Parent = refraction
+				
+				-- ANIMATION
+				task.spawn(function()
+					while kdr ~= "destroyed" and refraction.Parent do
+						tween(refraction, {Position = UDim2.fromScale(-0.3, -0.7)}, 6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut).Completed:Wait()
+						tween(refraction, {Position = UDim2.fromScale(-0.5, -0.55)}, 6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut).Completed:Wait()
+					end
+				end)
+				
+				-- TRIPLE STROKES
+				-- Inner Stroke (Sharp)
+				local innerStroke = Instance.new("UIStroke")
+				innerStroke.Name = "GlassInnerStroke"
+				innerStroke.Thickness = 1
+				innerStroke.Color = Color3.fromRGB(255, 255, 255)
+				innerStroke.Transparency = 0.6
+				innerStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+				innerStroke.Parent = mainFrame
+				Window.GlassInnerStroke = innerStroke
+				
+				-- Mid Stroke Frame
+				local midFrame = Instance.new("Frame")
+				midFrame.Name = "MidStrokeFrame"
+				midFrame.Size = UDim2.new(1, 0, 1, 0)
+				midFrame.BackgroundTransparency = 1
+				midFrame.ZIndex = 1
+				midFrame.Parent = mainFrame
+				Window.MidStrokeFrame = midFrame
+				
+				local midCorner = Instance.new("UICorner")
+				midCorner.CornerRadius = UDim.new(0, 12)
+				midCorner.Parent = midFrame
+				
+				local midStroke = Instance.new("UIStroke")
+				midStroke.Thickness = 2
+				midStroke.Color = Color3.fromRGB(230, 240, 255)
+				midStroke.Transparency = 0.35
+				midStroke.Parent = midFrame
+				
+				-- Outer Stroke Frame
+				local outerFrame = Instance.new("Frame")
+				outerFrame.Name = "OuterStrokeFrame"
+				outerFrame.Size = UDim2.new(1, 0, 1, 0)
+				outerFrame.BackgroundTransparency = 1
+				outerFrame.ZIndex = 0
+				outerFrame.Parent = mainFrame
+				Window.OuterStrokeFrame = outerFrame
+				
+				local outerCorner = Instance.new("UICorner")
+				outerCorner.CornerRadius = UDim.new(0, 12)
+				outerCorner.Parent = outerFrame
+				
+				local outerStroke = Instance.new("UIStroke")
+				outerStroke.Thickness = 3
+				outerStroke.Color = Color3.fromRGB(170, 210, 255)
+				outerStroke.Transparency = 0.75
+				outerStroke.Parent = outerFrame
+			end
+			
+			-- Make visible
+			Window.RefractionLayer.Visible = true
+			Window.MidStrokeFrame.Visible = true
+			Window.OuterStrokeFrame.Visible = true
+			if Window.GlassInnerStroke then Window.GlassInnerStroke.Enabled = true end
+			if Window.DepthGradient then Window.DepthGradient.Enabled = true end
+			
+		else
+			-- Hide if exists
+			if Window.RefractionLayer then
+				Window.RefractionLayer.Visible = false
+				Window.MidStrokeFrame.Visible = false
+				Window.OuterStrokeFrame.Visible = false
+				if Window.GlassInnerStroke then Window.GlassInnerStroke.Enabled = false end
+				if Window.DepthGradient then Window.DepthGradient.Enabled = false end
+			end
+		end
+		
+		-- 4. Update Particle Colors (Crucial fix!)
+		if Window.Particles then
+			for _, p in ipairs(Window.Particles) do
+				tween(p, {BackgroundColor3 = theme.particleColor}, 0.5)
+			end
+		end
 	end
+	
+	-- Initialize Glass State
+	Window:UpdateGlass(currentTheme)
 	
 	-- Title
 	local title = Instance.new("TextLabel")
@@ -571,6 +630,11 @@ function MythicalUI:CreateWindow(config)
 		if keybindConnection then
 			keybindConnection:Disconnect()
 			keybindConnection = nil
+		end
+		
+		-- Destroy blur if it exists
+		if Window.BlurEffect then
+			Window.BlurEffect:Destroy()
 		end
 		
 		playSound(Sounds.click, 0.5, 1.2)
@@ -741,6 +805,11 @@ function MythicalUI:CreateWindow(config)
 		isMinimized = true
 		Window.isMinimized = true
 		
+		-- Fade out blur if it exists
+		if Window.BlurEffect then
+			tween(Window.BlurEffect, {Size = 0}, 0.5)
+		end
+		
 		-- Save and hide all elements
 		savedTransparencies = {}
 		
@@ -801,6 +870,12 @@ function MythicalUI:CreateWindow(config)
 		playSound(Sounds.whoosh, 0.4, 1.2)
 		isMinimized = false
 		Window.isMinimized = false
+		
+		-- Fade in blur if it exists
+		if Window.BlurEffect then
+			local targetBlur = currentTheme.blurSize or 18
+			tween(Window.BlurEffect, {Size = targetBlur}, 0.5)
+		end
 		
 		tween(miniButton, {Size = UDim2.new(0, 0, 0, 0)}, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 		task.wait(0.2)
@@ -972,6 +1047,9 @@ function MythicalUI:CreateWindow(config)
 				for _, themeObj in ipairs(Window._themeObjects) do
 					themeObj.obj[themeObj.prop] = currentTheme[themeObj.colorKey]
 				end
+				
+				-- Update Glass Effects
+				Window:UpdateGlass(currentTheme)
 				
 				playSound(Sounds.whoosh, 0.5, 1)
 				print("🎨 Theme changed to: " .. themeName)
