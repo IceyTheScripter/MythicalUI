@@ -114,15 +114,17 @@ local Themes = {
 	},
 	{
 		name = "Liquid Glass",
-		primary = Color3.fromRGB(200, 220, 255),
-		secondary = Color3.fromRGB(180, 200, 240),
-		background = Color3.fromRGB(240, 245, 252),
-		topbar = Color3.fromRGB(250, 252, 255),
-		element = Color3.fromRGB(255, 255, 255),
-		text = Color3.fromRGB(20, 30, 50),
-		textDim = Color3.fromRGB(100, 120, 150),
-		accent = Color3.fromRGB(150, 180, 255),
-		particleColor = Color3.fromRGB(200, 220, 255)
+		primary = Color3.fromRGB(100, 200, 255),      -- Aqua/water blue
+		secondary = Color3.fromRGB(150, 220, 255),    -- Light sky blue  
+		background = Color3.fromRGB(15, 25, 40),      -- Deep ocean blue-black
+		topbar = Color3.fromRGB(25, 40, 60),          -- Slightly lighter deep blue
+		element = Color3.fromRGB(35, 55, 80),         -- Glass-tinted blue
+		text = Color3.fromRGB(220, 245, 255),         -- Ice white
+		textDim = Color3.fromRGB(120, 170, 200),      -- Faded blue-gray
+		accent = Color3.fromRGB(80, 180, 255),        -- Bright water blue
+		particleColor = Color3.fromRGB(150, 220, 255), -- Light sparkle blue
+		isGlass = true,  -- Special flag for glass transparency effects
+		glassTransparency = 0.25  -- How transparent glass elements are
 	}
 }
 
@@ -396,6 +398,84 @@ function MythicalUI:CreateWindow(config)
 	topCorner.CornerRadius = UDim.new(0, 12)
 	topCorner.Parent = topBar
 	
+	-- LIQUID GLASS EFFECTS (only when isGlass theme is active)
+	if currentTheme.isGlass then
+		local glassTransparency = currentTheme.glassTransparency or 0.25
+		
+		-- Make main frame semi-transparent (glass effect)
+		mainFrame.BackgroundTransparency = glassTransparency
+		
+		-- Make topbar slightly more opaque but still glassy
+		topBar.BackgroundTransparency = glassTransparency * 0.6
+		
+		-- Glass reflection overlay (subtle gradient from top)
+		local glassReflection = Instance.new("Frame")
+		glassReflection.Name = "GlassReflection"
+		glassReflection.Size = UDim2.new(1, 0, 0.4, 0)
+		glassReflection.Position = UDim2.new(0, 0, 0, 0)
+		glassReflection.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		glassReflection.BackgroundTransparency = 0.92
+		glassReflection.BorderSizePixel = 0
+		glassReflection.ZIndex = 2
+		glassReflection.Parent = mainFrame
+		
+		local reflectionCorner = Instance.new("UICorner")
+		reflectionCorner.CornerRadius = UDim.new(0, 12)
+		reflectionCorner.Parent = glassReflection
+		
+		-- Gradient for the reflection (fades down)
+		local reflectionGradient = Instance.new("UIGradient")
+		reflectionGradient.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0),
+			NumberSequenceKeypoint.new(0.5, 0.5),
+			NumberSequenceKeypoint.new(1, 1)
+		})
+		reflectionGradient.Rotation = 90
+		reflectionGradient.Parent = glassReflection
+		
+		-- Water shimmer effect (subtle moving highlight)
+		local shimmerOverlay = Instance.new("Frame")
+		shimmerOverlay.Name = "ShimmerOverlay"
+		shimmerOverlay.Size = UDim2.new(0.3, 0, 1, 0)
+		shimmerOverlay.Position = UDim2.new(-0.3, 0, 0, 0)
+		shimmerOverlay.BackgroundColor3 = currentTheme.particleColor
+		shimmerOverlay.BackgroundTransparency = 0.95
+		shimmerOverlay.BorderSizePixel = 0
+		shimmerOverlay.ZIndex = 2
+		shimmerOverlay.Parent = mainFrame
+		
+		local shimmerGradient = Instance.new("UIGradient")
+		shimmerGradient.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.4, 0.7),
+			NumberSequenceKeypoint.new(0.6, 0.7),
+			NumberSequenceKeypoint.new(1, 1)
+		})
+		shimmerGradient.Parent = shimmerOverlay
+		
+		-- Animate shimmer across the glass
+		task.spawn(function()
+			while shimmerOverlay.Parent do
+				shimmerOverlay.Position = UDim2.new(-0.3, 0, 0, 0)
+				tween(shimmerOverlay, {Position = UDim2.new(1, 0, 0, 0)}, 4)
+				task.wait(4)
+				task.wait(2) -- Pause between shimmers
+			end
+		end)
+		
+		-- Add subtle inner glow/border for water droplet effect
+		local innerGlow = Instance.new("UIStroke")
+		innerGlow.Color = currentTheme.secondary
+		innerGlow.Thickness = 1
+		innerGlow.Transparency = 0.6
+		innerGlow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		innerGlow.Parent = mainFrame
+		
+		-- Make stroke brighter/more visible
+		stroke.Transparency = 0.2
+		stroke.Thickness = 2
+	end
+	
 	-- Title
 	local title = Instance.new("TextLabel")
 	title.Name = "Title"
@@ -448,9 +528,23 @@ function MythicalUI:CreateWindow(config)
 	closeBtnCorner.CornerRadius = UDim.new(0, 8)
 	closeBtnCorner.Parent = closeBtn
 	
+	-- Track if UI is closed (to prevent keybind from working after close)
+	local isClosed = false
+	local keybindConnection = nil  -- Will be set later
+	
 	closeBtn.MouseButton1Click:Connect(function()
+		if isClosed then return end
+		isClosed = true
+		
+		-- Disconnect keybind listener
+		if keybindConnection then
+			keybindConnection:Disconnect()
+			keybindConnection = nil
+		end
+		
 		playSound(Sounds.click, 0.5, 1.2)
 		tween(mainFrame, {Size = UDim2.fromScale(0, 0)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+		tween(miniButton, {Size = UDim2.new(0, 0, 0, 0)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 		task.wait(0.3)
 		screenGui:Destroy()
 	end)
@@ -709,28 +803,47 @@ function MythicalUI:CreateWindow(config)
 	-- Store functions for external access
 	Window.Minimize = minimizeUI
 	Window.Restore = restoreUI
+	
+	-- Debounce flag to prevent rapid toggling
+	local isToggling = false
+	
 	Window.ToggleMinimize = function()
+		if isClosed then return end  -- Don't toggle if UI was closed
+		if isToggling then return end  -- Prevent rapid toggling
+		
+		isToggling = true
+		
 		if isMinimized then
 			restoreUI()
 		else
 			minimizeUI()
 		end
+		
+		-- Allow toggling again after animation completes
+		task.delay(0.4, function()
+			isToggling = false
+		end)
 	end
 	
 	-- Minimize button click
-	minimizeBtn.MouseButton1Click:Connect(minimizeUI)
+	minimizeBtn.MouseButton1Click:Connect(function()
+		if not isToggling and not isClosed then
+			minimizeUI()
+		end
+	end)
 	
 	-- Restore from mini button click (only if not dragging)
 	miniButton.MouseButton1Click:Connect(function()
-		if dragDistance < DRAG_THRESHOLD then
+		if dragDistance < DRAG_THRESHOLD and not isToggling and not isClosed then
 			restoreUI()
 		end
 	end)
 	
 	-- Keybind to toggle UI (RightControl by default, configurable via config.ToggleKey)
 	local toggleKey = config.ToggleKey or Enum.KeyCode.RightControl
-	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	keybindConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		if gameProcessed then return end
+		if isClosed then return end
 		if input.KeyCode == toggleKey then
 			Window.ToggleMinimize()
 		end
