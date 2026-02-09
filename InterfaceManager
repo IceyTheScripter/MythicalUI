@@ -1,10 +1,9 @@
 local httpService = game:GetService("HttpService")
 
 local InterfaceManager = {} do
-	InterfaceManager.Folder = "MythicalUISettings"
+	InterfaceManager.Folder = "MythicalScriptHub"
     InterfaceManager.Settings = {
-        Theme = "Purple Mystic",
-        MenuKeybind = "LeftControl"
+        Theme = "Purple Mystic"
     }
 
     function InterfaceManager:SetFolder(folder)
@@ -18,14 +17,12 @@ local InterfaceManager = {} do
 
     function InterfaceManager:BuildFolderTree()
 		local paths = {}
-
 		local parts = self.Folder:split("/")
 		for idx = 1, #parts do
 			paths[#paths + 1] = table.concat(parts, "/", 1, idx)
 		end
-
 		table.insert(paths, self.Folder)
-		table.insert(paths, self.Folder .. "/settings")
+		table.insert(paths, self.Folder .. "/interface")
 
 		for i = 1, #paths do
 			local str = paths[i]
@@ -36,11 +33,11 @@ local InterfaceManager = {} do
 	end
 
     function InterfaceManager:SaveSettings()
-        writefile(self.Folder .. "/options.json", httpService:JSONEncode(InterfaceManager.Settings))
+        writefile(self.Folder .. "/interface.json", httpService:JSONEncode(InterfaceManager.Settings))
     end
 
     function InterfaceManager:LoadSettings()
-        local path = self.Folder .. "/options.json"
+        local path = self.Folder .. "/interface.json"
         if isfile(path) then
             local data = readfile(path)
             local success, decoded = pcall(httpService.JSONDecode, httpService, data)
@@ -60,8 +57,7 @@ local InterfaceManager = {} do
 
         InterfaceManager:LoadSettings()
 
-		-- Theme Dropdown (MythicalUI style - no sections since MythicalUI doesn't have them)
-		local InterfaceTheme = tab:AddDropdown("InterfaceTheme", {
+		local themeDropdown = tab:AddDropdown("InterfaceTheme", {
 			Title = "Theme",
 			Values = Library:GetThemes(),
 			Default = Settings.Theme,
@@ -72,7 +68,7 @@ local InterfaceManager = {} do
 			end
 		})
 
-        InterfaceTheme:SetValue(Settings.Theme)
+        themeDropdown:SetValue(Settings.Theme)
     end
 end
 
