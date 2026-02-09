@@ -28,7 +28,6 @@ local Themes = {
 		accent = Color3.fromRGB(110, 100, 255),
 		particleColor = Color3.fromRGB(110, 100, 255),
 		toggleColor = Color3.fromRGB(110, 100, 255) -- Match primary
-		toggleTransparency = 0
 	},
 	{
 		name = "Crimson Blood",
@@ -42,7 +41,6 @@ local Themes = {
 		accent = Color3.fromRGB(255, 50, 50),
 		particleColor = Color3.fromRGB(255, 50, 50),
 		toggleColor = Color3.fromRGB(255, 50, 50) -- Match primary
-		toggleTransparency = 0
 	},
 	{
 		name = "Deep Emerald",
@@ -56,7 +54,6 @@ local Themes = {
 		accent = Color3.fromRGB(50, 255, 100),
 		particleColor = Color3.fromRGB(50, 255, 100),
 		toggleColor = Color3.fromRGB(50, 255, 100) -- Match primary
-		toggleTransparency = 0
 	},
 	{
 		name = "Ocean Abyss",
@@ -70,7 +67,6 @@ local Themes = {
 		accent = Color3.fromRGB(0, 150, 255),
 		particleColor = Color3.fromRGB(0, 150, 255),
 		toggleColor = Color3.fromRGB(0, 150, 255) -- Match primary
-		toggleTransparency = 0
 	},
 	{
 		name = "Amethyst Void",
@@ -84,7 +80,6 @@ local Themes = {
 		accent = Color3.fromRGB(180, 50, 255),
 		particleColor = Color3.fromRGB(180, 50, 255),
 		toggleColor = Color3.fromRGB(180, 50, 255) -- Match primary
-		toggleTransparency = 0
 	},
 	{
 		name = "Cyberpunk Neon",
@@ -98,7 +93,6 @@ local Themes = {
 		accent = Color3.fromRGB(255, 0, 255),
 		particleColor = Color3.fromRGB(0, 255, 255),
 		toggleColor = Color3.fromRGB(255, 0, 255) -- Match primary
-		toggleTransparency = 0
 	},
 	{
 		name = "Golden Luxury",
@@ -112,7 +106,6 @@ local Themes = {
 		accent = Color3.fromRGB(255, 215, 0),
 		particleColor = Color3.fromRGB(255, 215, 0),
 		toggleColor = Color3.fromRGB(255, 215, 0) -- Match primary
-		toggleTransparency = 0
 	},
 	{
 		name = "Inferno Orange",
@@ -125,8 +118,7 @@ local Themes = {
 		textDim = Color3.fromRGB(200, 170, 140),
 		accent = Color3.fromRGB(255, 100, 0),
 		particleColor = Color3.fromRGB(255, 100, 0),
-		toggleColor = Color3.fromRGB(255, 100, 0)-- Match primary
-		toggleTransparency = 0
+		toggleColor = Color3.fromRGB(255, 100, 0) -- Match primary
 	},
 	{
 		name = "Liquid Glass",
@@ -139,8 +131,7 @@ local Themes = {
 		textDim = Color3.fromRGB(120, 130, 140),      
 		accent = Color3.fromRGB(0, 122, 255),         
 		particleColor = Color3.fromRGB(100, 200, 255),
-		toggleColor = Color3.fromRGB(120, 120, 130),-- Grey for toggles
-		toggleTransparency = 0.78,
+		toggleColor = Color3.fromRGB(120, 120, 130),  -- Grey for toggles
 		isGlass = true,
 		glassTransparency = 0.58,
 		blurSize = 18
@@ -344,12 +335,12 @@ function MythicalUI:CreateWindow(config)
 	local Window = {
 		Tabs = {},
 		CurrentTab = nil,
-		_themeObjects = {}, -- For theme updating
+		_themeObjects = {}, -- For static theme updating
+		_dynamicUpdates = {}, -- For dynamic theme updating (complex callbacks)
 	}
 	
-	-- Store reference for config system
-	MythicalUI.Window = Window
-	
+-- ... (skipping some lines)
+
 	-- Create ScreenGui
 	local screenGui = Instance.new("ScreenGui")
 	screenGui.Name = "MythicalUI"
@@ -1066,6 +1057,11 @@ function MythicalUI:CreateWindow(config)
 					themeObj.obj[themeObj.prop] = currentTheme[themeObj.colorKey]
 				end
 				
+				-- Trigger dynamic updates (for Toggles, etc.)
+				for _, updateCallback in ipairs(Window._dynamicUpdates) do
+					updateCallback()
+				end
+				
 				-- Update Glass Effects
 				Window:UpdateGlass(currentTheme)
 				
@@ -1310,9 +1306,43 @@ function MythicalUI:CreateWindow(config)
 			indicatorCorner.CornerRadius = UDim.new(1, 0)
 			indicatorCorner.Parent = toggleIndicator
 			
+			-- REFLECTION (For Liquid Glass)
+			local toggleReflection = Instance.new("Frame")
+			toggleReflection.Name = "Reflection"
+			toggleReflection.Size = UDim2.new(1, 0, 0.5, 0)
+			toggleReflection.Position = UDim2.new(0, 0, 0, 0)
+			toggleReflection.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+			toggleReflection.BackgroundTransparency = 0.5
+			toggleReflection.BorderSizePixel = 0
+			toggleReflection.ZIndex = 7
+			toggleReflection.Visible = false
+			toggleReflection.Parent = toggleButton
+			
+			local reflectionCorner = Instance.new("UICorner")
+			reflectionCorner.CornerRadius = UDim.new(1, 0)
+			reflectionCorner.Parent = toggleReflection
+			
+			local reflectionGradient = Instance.new("UIGradient")
+			reflectionGradient.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.1),
+				NumberSequenceKeypoint.new(1, 1)
+			})
+			reflectionGradient.Rotation = 90
+			reflectionGradient.Parent = toggleReflection
+			
 			local function updateToggle()
+				-- Determine target color (Grey for Glass, Primary for others)
+				local onColor = currentTheme.toggleColor or currentTheme.primary
+				
+				-- Handle Reflection Visibility
+				if currentTheme.isGlass then
+					toggleReflection.Visible = true
+				else
+					toggleReflection.Visible = false
+				end
+				
 				if Toggle.Value then
-					tween(toggleButton, {BackgroundColor3 = currentTheme.primary}, 0.3)
+					tween(toggleButton, {BackgroundColor3 = onColor}, 0.3)
 					tween(toggleIndicator, {
 						Position = UDim2.new(1, -20, 0.5, 0),
 						BackgroundColor3 = currentTheme.text
@@ -1325,6 +1355,9 @@ function MythicalUI:CreateWindow(config)
 					}, 0.3, Enum.EasingStyle.Quad)
 				end
 			end
+			
+			-- Register for dynamic theme updates
+			table.insert(Window._dynamicUpdates, updateToggle)
 			
 			local function toggleValue()
 				playSound(Sounds.toggle, 0.5, Toggle.Value and 0.9 or 1.1)
