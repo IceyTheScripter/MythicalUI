@@ -5,6 +5,7 @@ local SaveManager = {} do
     SaveManager.Settings = {}
     SaveManager.IgnoreThemeSettings = false
     SaveManager.IgnoreIndexes = {}
+    SaveManager.Options = {}
 
     function SaveManager:SetFolder(folder)
 		self.Folder = folder
@@ -63,28 +64,44 @@ local SaveManager = {} do
         
         SaveManager:LoadSettings()
         
-        -- Add config management UI here
+        -- Save Config Button
         tab:AddButton({
             Title = "Save Config",
-            Description = "Save current settings",
+            Description = "Save your current settings",
             Callback = function()
                 SaveManager:SaveSettings()
                 self.Library:Notify({
-                    Title = "Config",
-                    Content = "Settings saved!",
+                    Title = "Config Saved",
+                    Content = "Your settings have been saved!",
                     Duration = 3
                 })
             end
         })
 
+        -- Load Config Button
         tab:AddButton({
             Title = "Load Config",
-            Description = "Load saved settings",
+            Description = "Load your saved settings",
             Callback = function()
                 SaveManager:LoadSettings()
                 self.Library:Notify({
-                    Title = "Config",
-                    Content = "Settings loaded!",
+                    Title = "Config Loaded",
+                    Content = "Your settings have been loaded!",
+                    Duration = 3
+                })
+            end
+        })
+
+        -- Reset to Defaults Button
+        tab:AddButton({
+            Title = "Reset to Defaults",
+            Description = "Reset all settings to default",
+            Callback = function()
+                SaveManager.Settings = {}
+                SaveManager:SaveSettings()
+                self.Library:Notify({
+                    Title = "Reset",
+                    Content = "Settings have been reset!",
                     Duration = 3
                 })
             end
@@ -92,7 +109,6 @@ local SaveManager = {} do
     end
 
     function SaveManager:LoadAutoloadConfig()
-        -- Load config marked as autoload
         SaveManager:LoadSettings()
     end
 end
