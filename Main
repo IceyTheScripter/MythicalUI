@@ -1111,11 +1111,36 @@ function MythicalUI:CreateWindow(config)
 		
 		-- ADD SLIDER
 		function Tab:AddSlider(sliderName, sliderConfig)
+			-- Validate and set defaults
+			local minValue = sliderConfig.Min or 0
+			local maxValue = sliderConfig.Max or 100
+			local rounding = sliderConfig.Rounding or 1
+			
+			-- Fix if min > max
+			if minValue > maxValue then
+				local temp = minValue
+				minValue = maxValue
+				maxValue = temp
+			end
+			
+			-- Fix if min == max
+			if minValue == maxValue then
+				maxValue = minValue + 100
+			end
+			
+			-- Fix rounding
+			if rounding < 0 then
+				rounding = 1
+			end
+			
+			local defaultValue = sliderConfig.Default or minValue
+			defaultValue = math.clamp(defaultValue, minValue, maxValue)
+			
 			local Slider = {
-				Value = sliderConfig.Default or sliderConfig.Min or 0,
-				Min = sliderConfig.Min or 0,
-				Max = sliderConfig.Max or 100,
-				Rounding = sliderConfig.Rounding or 1,
+				Value = defaultValue,
+				Min = minValue,
+				Max = maxValue,
+				Rounding = rounding,
 				Name = sliderName,
 				Type = "Slider"
 			}
@@ -1199,9 +1224,25 @@ function MythicalUI:CreateWindow(config)
 			local dragging = false
 			
 			local function updateSlider(input)
+				-- Prevent division by zero
+				if Slider.Max == Slider.Min then
+					Slider.Value = Slider.Min
+					sliderValue.Text = tostring(Slider.Value)
+					return
+				end
+				
 				local pos = math.clamp((input.Position.X - sliderBar.AbsolutePosition.X) / sliderBar.AbsoluteSize.X, 0, 1)
 				local value = Slider.Min + (pos * (Slider.Max - Slider.Min))
-				value = math.floor(value / Slider.Rounding + 0.5) * Slider.Rounding
+				
+				-- Handle rounding properly
+				if Slider.Rounding > 0 then
+					value = math.floor(value / Slider.Rounding + 0.5) * Slider.Rounding
+				else
+					value = math.floor(value + 0.5) -- Round to nearest integer if Rounding is 0
+				end
+				
+				-- Clamp to min/max
+				value = math.clamp(value, Slider.Min, Slider.Max)
 				Slider.Value = value
 				
 				sliderValue.Text = tostring(value)
@@ -1242,6 +1283,14 @@ function MythicalUI:CreateWindow(config)
 			end)
 			
 			function Slider:SetValue(value)
+				-- Prevent NaN
+				if Slider.Max == Slider.Min then
+					Slider.Value = Slider.Min
+					sliderValue.Text = tostring(Slider.Value)
+					sliderFill.Size = UDim2.new(0, 0, 1, 0)
+					return
+				end
+				
 				Slider.Value = math.clamp(value, Slider.Min, Slider.Max)
 				sliderValue.Text = tostring(Slider.Value)
 				local pos = (Slider.Value - Slider.Min) / (Slider.Max - Slider.Min)
