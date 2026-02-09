@@ -1098,7 +1098,10 @@ function MythicalUI:CreateWindow(config)
 			end
 			
 			function Toggle:OnChanged(callback)
-				-- Additional callback support
+				toggleButton.MouseButton1Click:Connect(function()
+					task.wait(0.05)
+					callback(Toggle.Value)
+				end)
 			end
 			
 			updateToggle()
@@ -1243,6 +1246,14 @@ function MythicalUI:CreateWindow(config)
 				sliderValue.Text = tostring(Slider.Value)
 				local pos = (Slider.Value - Slider.Min) / (Slider.Max - Slider.Min)
 				tween(sliderFill, {Size = UDim2.new(pos, 0, 1, 0)}, 0.3)
+			end
+			
+			function Slider:OnChanged(callback)
+				local oldUpdate = updateSlider
+				updateSlider = function(input)
+					oldUpdate(input)
+					callback(Slider.Value)
+				end
 			end
 			
 			Slider:SetValue(Slider.Value)
@@ -1459,6 +1470,17 @@ function MythicalUI:CreateWindow(config)
 				createOptions()
 			end
 			
+			function Dropdown:OnChanged(callback)
+				-- Store additional callback
+				local oldCallback = dropdownConfig.Callback
+				dropdownConfig.Callback = function(value)
+					if oldCallback then
+						oldCallback(value)
+					end
+					callback(value)
+				end
+			end
+			
 			if Dropdown.Value then
 				dropdownTitle.Text = Dropdown.Value
 			end
@@ -1553,6 +1575,11 @@ function MythicalUI:CreateWindow(config)
 				end
 			end)
 			
+			-- Update value in real-time as user types
+			inputBox:GetPropertyChangedSignal("Text"):Connect(function()
+				Input.Value = inputBox.Text
+			end)
+			
 			if inputConfig.Numeric then
 				inputBox:GetPropertyChangedSignal("Text"):Connect(function()
 					inputBox.Text = inputBox.Text:gsub("[^%d]", "")
@@ -1562,6 +1589,13 @@ function MythicalUI:CreateWindow(config)
 			inputFrame.MouseEnter:Connect(function()
 				playSound(Sounds.hover, 0.3, 1.1)
 			end)
+			
+			function Input:OnChanged(callback)
+				inputBox:GetPropertyChangedSignal("Text"):Connect(function()
+					Input.Value = inputBox.Text
+					callback(inputBox.Text)
+				end)
+			end
 			
 			MythicalUI.Options[inputName] = Input
 			return Input
@@ -1658,6 +1692,13 @@ function MythicalUI:CreateWindow(config)
 			function Colorpicker:SetValueRGB(color)
 				Colorpicker.Value = color
 				colorDisplay.BackgroundColor3 = color
+			end
+			
+			function Colorpicker:OnChanged(callback)
+				colorDisplay.MouseButton1Click:Connect(function()
+					task.wait(0.05)
+					callback(Colorpicker.Value)
+				end)
 			end
 			
 			MythicalUI.Options[colorpickerName] = Colorpicker
@@ -1763,6 +1804,15 @@ function MythicalUI:CreateWindow(config)
 			function Keybind:SetValue(value)
 				Keybind.Value = value
 				keybindButton.Text = value
+			end
+			
+			function Keybind:OnChanged(callback)
+				UserInputService.InputBegan:Connect(function(input)
+					if listening and input.KeyCode ~= Enum.KeyCode.Unknown then
+						task.wait(0.05)
+						callback(Keybind.Value)
+					end
+				end)
 			end
 			
 			MythicalUI.Options[keybindName] = Keybind
