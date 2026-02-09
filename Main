@@ -476,16 +476,18 @@ function MythicalUI:CreateWindow(config)
 	-- Floating Mini Button (hidden by default)
 	local miniButton = Instance.new("TextButton")
 	miniButton.Name = "MiniButton"
-	miniButton.Size = UDim2.new(0, 45, 0, 45)
+	miniButton.Size = UDim2.new(0, 50, 0, 50)
 	miniButton.Position = UDim2.new(0, 20, 0.5, 0)
 	miniButton.AnchorPoint = Vector2.new(0, 0.5)
 	miniButton.BackgroundColor3 = currentTheme.primary
+	miniButton.BackgroundTransparency = 0.1
 	miniButton.BorderSizePixel = 0
+	miniButton.ClipsDescendants = true
 	-- Use first letter of title or "M" for Mythical
 	local titleInitial = string.sub(config.Title or "M", 1, 1)
 	miniButton.Text = titleInitial
 	miniButton.TextColor3 = currentTheme.text
-	miniButton.TextSize = 20
+	miniButton.TextSize = 22
 	miniButton.Font = Enum.Font.GothamBold
 	miniButton.Visible = false
 	miniButton.ZIndex = 100
@@ -495,23 +497,103 @@ function MythicalUI:CreateWindow(config)
 	table.insert(Window._themeObjects, {obj = miniButton, prop = "TextColor3", colorKey = "text"})
 	
 	local miniButtonCorner = Instance.new("UICorner")
-	miniButtonCorner.CornerRadius = UDim.new(0, 10)
+	miniButtonCorner.CornerRadius = UDim.new(1, 0)  -- Fully round
 	miniButtonCorner.Parent = miniButton
 	
 	local miniButtonStroke = Instance.new("UIStroke")
 	miniButtonStroke.Color = currentTheme.secondary
 	miniButtonStroke.Thickness = 2
-	miniButtonStroke.Transparency = 0.3
+	miniButtonStroke.Transparency = 0.2
 	miniButtonStroke.Parent = miniButton
 	
 	table.insert(Window._themeObjects, {obj = miniButtonStroke, prop = "Color", colorKey = "secondary"})
 	
-	-- Mini button dragging
-	local miniDragging, miniDragInput, miniDragStart, miniStartPos
+	-- Add glow effect frame behind mini button
+	local miniGlow = Instance.new("Frame")
+	miniGlow.Name = "MiniGlow"
+	miniGlow.Size = UDim2.new(0, 70, 0, 70)
+	miniGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+	miniGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+	miniGlow.BackgroundColor3 = currentTheme.particleColor
+	miniGlow.BackgroundTransparency = 0.85
+	miniGlow.BorderSizePixel = 0
+	miniGlow.ZIndex = 99
+	miniGlow.Parent = miniButton
+	
+	local miniGlowCorner = Instance.new("UICorner")
+	miniGlowCorner.CornerRadius = UDim.new(1, 0)
+	miniGlowCorner.Parent = miniGlow
+	
+	table.insert(Window._themeObjects, {obj = miniGlow, prop = "BackgroundColor3", colorKey = "particleColor"})
+	
+	-- Floating particles around mini button
+	local miniParticles = {}
+	for i = 1, 6 do
+		local particle = Instance.new("Frame")
+		particle.Size = UDim2.new(0, math.random(3, 6), 0, math.random(3, 6))
+		particle.Position = UDim2.new(0.5, 0, 0.5, 0)
+		particle.AnchorPoint = Vector2.new(0.5, 0.5)
+		particle.BackgroundColor3 = currentTheme.particleColor
+		particle.BackgroundTransparency = 0.4
+		particle.BorderSizePixel = 0
+		particle.ZIndex = 101
+		particle.Parent = miniButton
+		
+		local particleCorner = Instance.new("UICorner")
+		particleCorner.CornerRadius = UDim.new(1, 0)
+		particleCorner.Parent = particle
+		
+		table.insert(miniParticles, particle)
+		table.insert(Window._themeObjects, {obj = particle, prop = "BackgroundColor3", colorKey = "particleColor"})
+		
+		-- Orbit animation for particles
+		task.spawn(function()
+			local angle = (i / 6) * math.pi * 2
+			local radius = 30
+			local speed = 0.5 + math.random() * 0.5
+			
+			while particle.Parent do
+				angle = angle + (0.02 * speed)
+				local x = math.cos(angle) * radius
+				local y = math.sin(angle) * radius
+				
+				tween(particle, {
+					Position = UDim2.new(0.5, x, 0.5, y),
+					BackgroundTransparency = 0.3 + math.random() * 0.4,
+					Size = UDim2.new(0, math.random(3, 6), 0, math.random(3, 6))
+				}, 0.5)
+				
+				task.wait(0.5)
+			end
+		end)
+	end
+	
+	-- Pulsing glow animation
+	task.spawn(function()
+		while miniGlow.Parent do
+			tween(miniGlow, {
+				Size = UDim2.new(0, 80, 0, 80),
+				BackgroundTransparency = 0.7
+			}, 1)
+			task.wait(1)
+			tween(miniGlow, {
+				Size = UDim2.new(0, 60, 0, 60),
+				BackgroundTransparency = 0.9
+			}, 1)
+			task.wait(1)
+		end
+	end)
+	
+	-- Mini button dragging with drag distance tracking
+	local miniDragging = false
+	local miniDragInput, miniDragStart, miniStartPos
+	local dragDistance = 0
+	local DRAG_THRESHOLD = 5  -- Pixels moved before considered a drag
 	
 	miniButton.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			miniDragging = true
+			dragDistance = 0
 			miniDragStart = input.Position
 			miniStartPos = miniButton.Position
 			
@@ -532,6 +614,7 @@ function MythicalUI:CreateWindow(config)
 	UserInputService.InputChanged:Connect(function(input)
 		if input == miniDragInput and miniDragging then
 			local delta = input.Position - miniDragStart
+			dragDistance = delta.Magnitude
 			miniButton.Position = UDim2.new(
 				miniStartPos.X.Scale,
 				miniStartPos.X.Offset + delta.X,
@@ -543,26 +626,39 @@ function MythicalUI:CreateWindow(config)
 	
 	local isMinimized = false
 	Window.isMinimized = false
+	Window.miniButton = miniButton  -- Store reference for keybind access
 	
-	-- Minimize: hide main frame, show mini button
-	minimizeBtn.MouseButton1Click:Connect(function()
+	-- Function to minimize UI
+	local function minimizeUI()
+		if isMinimized then return end
 		playSound(Sounds.whoosh, 0.4, 0.8)
 		isMinimized = true
 		Window.isMinimized = true
 		
-		tween(mainFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-		task.wait(0.3)
+		-- Just hide, don't resize to 0 (preserves children)
+		tween(mainFrame, {BackgroundTransparency = 1}, 0.2)
+		for _, child in ipairs(mainFrame:GetDescendants()) do
+			if child:IsA("GuiObject") then
+				pcall(function()
+					tween(child, {BackgroundTransparency = 1}, 0.2)
+				end)
+			end
+			if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
+				pcall(function()
+					tween(child, {TextTransparency = 1}, 0.2)
+				end)
+			end
+		end
+		task.wait(0.2)
 		mainFrame.Visible = false
 		miniButton.Visible = true
 		miniButton.Size = UDim2.new(0, 0, 0, 0)
-		tween(miniButton, {Size = UDim2.new(0, 45, 0, 45)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-	end)
+		tween(miniButton, {Size = UDim2.new(0, 50, 0, 50)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	end
 	
-	-- Restore: hide mini button, show main frame
-	miniButton.MouseButton1Click:Connect(function()
-		-- Only restore if not dragging (small movement threshold)
-		if miniDragging then return end
-		
+	-- Function to restore UI
+	local function restoreUI()
+		if not isMinimized then return end
 		playSound(Sounds.whoosh, 0.4, 1.2)
 		isMinimized = false
 		Window.isMinimized = false
@@ -571,8 +667,55 @@ function MythicalUI:CreateWindow(config)
 		task.wait(0.2)
 		miniButton.Visible = false
 		mainFrame.Visible = true
-		mainFrame.Size = UDim2.new(0, 0, 0, 0)
-		tween(mainFrame, {Size = UDim2.fromScale(0.45, 0.65)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+		
+		-- Restore transparency
+		tween(mainFrame, {BackgroundTransparency = 0}, 0.2)
+		for _, child in ipairs(mainFrame:GetDescendants()) do
+			if child:IsA("Frame") and child.Name ~= "MiniGlow" then
+				pcall(function()
+					if child.BackgroundTransparency > 0.5 then
+						-- Keep transparent items transparent
+					else
+						tween(child, {BackgroundTransparency = 0}, 0.2)
+					end
+				end)
+			end
+			if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
+				pcall(function()
+					tween(child, {TextTransparency = 0}, 0.2)
+				end)
+			end
+		end
+	end
+	
+	-- Store functions for external access
+	Window.Minimize = minimizeUI
+	Window.Restore = restoreUI
+	Window.ToggleMinimize = function()
+		if isMinimized then
+			restoreUI()
+		else
+			minimizeUI()
+		end
+	end
+	
+	-- Minimize button click
+	minimizeBtn.MouseButton1Click:Connect(minimizeUI)
+	
+	-- Restore from mini button click (only if not dragging)
+	miniButton.MouseButton1Click:Connect(function()
+		if dragDistance < DRAG_THRESHOLD then
+			restoreUI()
+		end
+	end)
+	
+	-- Keybind to toggle UI (RightControl by default, configurable via config.ToggleKey)
+	local toggleKey = config.ToggleKey or Enum.KeyCode.RightControl
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed then return end
+		if input.KeyCode == toggleKey then
+			Window.ToggleMinimize()
+		end
 	end)
 	
 	minimizeBtn.MouseEnter:Connect(function()
@@ -586,13 +729,13 @@ function MythicalUI:CreateWindow(config)
 	
 	miniButton.MouseEnter:Connect(function()
 		playSound(Sounds.hover, 0.3, 1.1)
-		tween(miniButton, {Size = UDim2.new(0, 50, 0, 50)}, 0.2)
-		tween(miniButtonStroke, {Transparency = 0}, 0.2)
+		tween(miniButton, {Size = UDim2.new(0, 58, 0, 58)}, 0.2)
+		tween(miniButtonStroke, {Transparency = 0, Thickness = 3}, 0.2)
 	end)
 	
 	miniButton.MouseLeave:Connect(function()
-		tween(miniButton, {Size = UDim2.new(0, 45, 0, 45)}, 0.2)
-		tween(miniButtonStroke, {Transparency = 0.3}, 0.2)
+		tween(miniButton, {Size = UDim2.new(0, 50, 0, 50)}, 0.2)
+		tween(miniButtonStroke, {Transparency = 0.2, Thickness = 2}, 0.2)
 	end)
 	
 	-- Tab Container
