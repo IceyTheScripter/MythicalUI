@@ -57,6 +57,7 @@ local InterfaceManager = {} do
 
         InterfaceManager:LoadSettings()
 
+		-- Theme Dropdown
 		local themeDropdown = tab:AddDropdown("InterfaceTheme", {
 			Title = "Theme",
 			Values = Library:GetThemes(),
