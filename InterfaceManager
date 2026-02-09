@@ -1,0 +1,34 @@
+local httpService = game:GetService("HttpService")
+local InterfaceManager = {} do
+    InterfaceManager.Folder = "MythicalSettings"
+    InterfaceManager.Settings = { Theme = "Dark", MenuKeybind = "LeftControl" }
+
+    function InterfaceManager:SetLibrary(library) self.Library = library end
+    function InterfaceManager:SetFolder(folder) self.Folder = folder end
+
+    function InterfaceManager:BuildInterfaceSection(tab)
+        local section = tab:AddSection("Interface")
+        
+        -- Use the Library's theme list
+        local themeList = self.Library.Themes or {"Dark", "Light", "Purple Mystic"}
+
+        local themeDropdown = section:AddDropdown("InterfaceTheme", {
+            Title = "Theme",
+            Values = themeList,
+            Default = self.Settings.Theme,
+            Callback = function(v)
+                self.Library:SetTheme(v)
+                self.Settings.Theme = v
+            end
+        })
+
+        local keybind = section:AddKeybind("MenuKeybind", {
+            Title = "Minimize Key",
+            Default = self.Settings.MenuKeybind,
+        })
+        keybind:OnChanged(function()
+            self.Library.MinimizeKeybind = keybind.Value
+        end)
+    end
+end
+return InterfaceManager
