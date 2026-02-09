@@ -1,0 +1,177 @@
+-- [[ MYTHICAL UI LIBRARY - CORE LOGIC ]]
+-- Purpose: Handles element registration, theme switching, and global state management.
+
+local MythicalUI = {
+    Options = {}, -- The "Brain" for the SaveManager
+    Themes = {
+        ["Purple"] = {
+            Accent = Color3.fromRGB(140, 0, 255),
+            Main = Color3.fromRGB(20, 15, 30),
+            Text = Color3.fromRGB(240, 240, 240),
+            SectionText = Color3.fromRGB(200, 180, 220),
+            ElementBackground = Color3.fromRGB(30, 25, 45),
+            Transparency = 0.2
+        },
+        ["Green (Matrix)"] = {
+            Accent = Color3.fromRGB(0, 255, 70),
+            Main = Color3.fromRGB(5, 15, 5),
+            Text = Color3.fromRGB(0, 255, 100),
+            SectionText = Color3.fromRGB(0, 200, 50),
+            ElementBackground = Color3.fromRGB(10, 25, 10),
+            Transparency = 0.3
+        },
+        ["Red (Blood)"] = {
+            Accent = Color3.fromRGB(180, 0, 0),
+            Main = Color3.fromRGB(15, 5, 5),
+            Text = Color3.fromRGB(255, 80, 80),
+            SectionText = Color3.fromRGB(150, 0, 0),
+            ElementBackground = Color3.fromRGB(25, 10, 10),
+            Transparency = 0.1
+        },
+        ["Blue (Calm)"] = {
+            Accent = Color3.fromRGB(0, 120, 255),
+            Main = Color3.fromRGB(10, 15, 25),
+            Text = Color3.fromRGB(200, 220, 255),
+            SectionText = Color3.fromRGB(80, 140, 200),
+            ElementBackground = Color3.fromRGB(15, 25, 40),
+            Transparency = 0.2
+        }
+    },
+    CurrentTheme = "Purple",
+    Unloaded = false
+}
+
+-- [[ INTERNAL UTILITIES ]]
+
+-- This allows SaveManager to "see" every toggle/slider automatically
+local function RegisterOption(Id, Object)
+    if Id and Id ~= "" then
+        MythicalUI.Options[Id] = Object
+    end
+end
+
+-- Safely handles callbacks so the whole script doesn't crash if a user makes a typo
+function MythicalUI:SafeCallback(f, ...)
+    if f then
+        local success, err = pcall(f, ...)
+        if not success then 
+            warn("Mythical Callback Error: " .. tostring(err))
+        end
+    end
+end
+
+-- [[ WINDOW SYSTEM ]]
+
+function MythicalUI:CreateWindow(Config)
+    local Title = Config.Title or "Mythical"
+    local SubTitle = Config.SubTitle or ""
+    local TabWidth = Config.TabWidth or 160
+    
+    -- Set Initial Theme
+    self.CurrentTheme = Config.Theme or "Purple"
+    
+    -- [ INSERT ALL YOUR 1000+ LINES OF GUI CREATION HERE ]
+    -- Keep your ScreenGui, MainFrame, Sidebar, and Tab Container logic exactly as is.
+    
+    local Window = {
+        Tabs = {},
+        SelectedTab = nil
+    }
+
+    -- [[ TAB SYSTEM ]]
+    
+    function Window:AddTab(TabConfig)
+        local TabTitle = TabConfig.Title or "Tab"
+        local TabIcon = TabConfig.Icon or ""
+        
+        -- [ INSERT YOUR TAB BUTTON CREATION LOGIC ]
+        
+        local Tab = {
+            Sections = {},
+            Container = nil -- This is your ScrollingFrame for the tab
+        }
+
+        -- [[ SECTION SYSTEM ]]
+
+        function Tab:AddSection(SectionTitle)
+            -- [ INSERT YOUR SECTION FRAME CREATION LOGIC ]
+            -- (Reference your uploaded Section.lua for the layout)
+            
+            local Section = {
+                Container = nil -- The frame inside the section where elements go
+            }
+
+            -- [[ ELEMENT INJECTION ]]
+            -- This is where we link your Elements/*.lua files to the UI
+            
+            -- TOGGLE
+            function Section:AddToggle(Id, ToggleConfig)
+                -- 1. Create the Toggle using your Toggle.lua logic
+                local Toggle = {
+                    Type = "Toggle",
+                    Value = ToggleConfig.Default or false,
+                    Callback = ToggleConfig.Callback or function() end
+                }
+                
+                -- [ INSERT YOUR TWEENING/VISUAL LOGIC FROM TOGGLE.LUA ]
+                
+                -- 2. Setup the SetValue function for SaveManager
+                function Toggle:SetValue(v)
+                    Toggle.Value = v
+                    -- Update the visuals (the circle sliding, etc.)
+                    MythicalUI:SafeCallback(Toggle.Callback, v)
+                end
+                
+                -- 3. AUTO-REGISTER
+                RegisterOption(Id, Toggle)
+                return Toggle
+            end
+
+            -- SLIDER
+            function Section:AddSlider(Id, SliderConfig)
+                local Slider = {
+                    Type = "Slider",
+                    Value = SliderConfig.Default or SliderConfig.Min,
+                    Min = SliderConfig.Min or 0,
+                    Max = SliderConfig.Max or 100,
+                    Rounding = SliderConfig.Rounding or 0,
+                    Callback = SliderConfig.Callback or function() end
+                }
+                
+                -- [ INSERT YOUR SLIDER DRAGGING LOGIC FROM SLIDER.LUA ]
+                
+                function Slider:SetValue(v)
+                    Slider.Value = math.clamp(v, Slider.Min, Slider.Max)
+                    -- Update the slider bar width and text
+                    MythicalUI:SafeCallback(Slider.Callback, Slider.Value)
+                end
+                
+                RegisterOption(Id, Slider)
+                return Slider
+            end
+
+            -- [ ADD BUTTON, DROPDOWN, INPUT, COLORPICKER IN THE SAME WAY ]
+            -- Always ensure RegisterOption(Id, Object) is called at the end!
+
+            return Section
+        end
+        return Tab
+    end
+
+    return Window
+end
+
+-- [[ THEME ENGINE ]]
+
+function MythicalUI:SetTheme(ThemeName)
+    local Selected = self.Themes[ThemeName]
+    if not Selected then return end
+    
+    self.CurrentTheme = ThemeName
+    
+    -- This function needs to iterate through all created objects and update them
+    -- Use your Creator.lua logic here to loop through the Registry
+    print("Mythical: Theme changed to " .. ThemeName)
+end
+
+return MythicalUI
