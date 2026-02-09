@@ -394,12 +394,12 @@ function MythicalUI:CreateWindow(config)
 		end
 	end)
 	
-	mainFrame.Position = UDim2.new(
-		startPos.X.Scale,
-		startPos.X.Offset + delta.X,
-		startPos.Y.Scale,
-		startPos.Y.Offset + delta.Y
-	)
+		mainFrame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
 
 	
 	-- ADD TAB FUNCTION
@@ -683,6 +683,7 @@ function MythicalUI:CreateWindow(config)
 					callback(Toggle.Value)
 				end)
 			end
+
 			
 			updateToggle()
 			return Toggle
