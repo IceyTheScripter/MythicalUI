@@ -28,7 +28,6 @@ local Themes = {
 		accent = Color3.fromRGB(110, 100, 255),
 		particleColor = Color3.fromRGB(110, 100, 255),
 		toggleColor = Color3.fromRGB(110, 100, 255) -- Match primary
-		toggleTransparency = 0
 	},
 	{
 		name = "Crimson Blood",
@@ -42,7 +41,6 @@ local Themes = {
 		accent = Color3.fromRGB(255, 50, 50),
 		particleColor = Color3.fromRGB(255, 50, 50),
 		toggleColor = Color3.fromRGB(255, 50, 50) -- Match primary
-		toggleTransparency = 0
 	},
 	{
 		name = "Deep Emerald",
@@ -56,7 +54,6 @@ local Themes = {
 		accent = Color3.fromRGB(50, 255, 100),
 		particleColor = Color3.fromRGB(50, 255, 100),
 		toggleColor = Color3.fromRGB(50, 255, 100) -- Match primary
-		toggleTransparency = 0
 	},
 	{
 		name = "Ocean Abyss",
@@ -70,7 +67,6 @@ local Themes = {
 		accent = Color3.fromRGB(0, 150, 255),
 		particleColor = Color3.fromRGB(0, 150, 255),
 		toggleColor = Color3.fromRGB(0, 150, 255) -- Match primary
-		toggleTransparency = 0
 	},
 	{
 		name = "Amethyst Void",
@@ -84,7 +80,6 @@ local Themes = {
 		accent = Color3.fromRGB(180, 50, 255),
 		particleColor = Color3.fromRGB(180, 50, 255),
 		toggleColor = Color3.fromRGB(180, 50, 255) -- Match primary
-		toggleTransparency = 0
 	},
 	{
 		name = "Cyberpunk Neon",
@@ -98,7 +93,6 @@ local Themes = {
 		accent = Color3.fromRGB(255, 0, 255),
 		particleColor = Color3.fromRGB(0, 255, 255),
 		toggleColor = Color3.fromRGB(255, 0, 255) -- Match primary
-		toggleTransparency = 0
 	},
 	{
 		name = "Golden Luxury",
@@ -112,7 +106,6 @@ local Themes = {
 		accent = Color3.fromRGB(255, 215, 0),
 		particleColor = Color3.fromRGB(255, 215, 0),
 		toggleColor = Color3.fromRGB(255, 215, 0) -- Match primary
-		toggleTransparency = 0
 	},
 	{
 		name = "Inferno Orange",
@@ -126,7 +119,6 @@ local Themes = {
 		accent = Color3.fromRGB(255, 100, 0),
 		particleColor = Color3.fromRGB(255, 100, 0),
 		toggleColor = Color3.fromRGB(255, 100, 0) -- Match primary
-		toggleTransparency = 0
 	},
 	{
 		name = "Liquid Glass",
@@ -139,8 +131,7 @@ local Themes = {
 		textDim = Color3.fromRGB(120, 130, 140),      
 		accent = Color3.fromRGB(0, 122, 255),         
 		particleColor = Color3.fromRGB(100, 200, 255),
-		toggleColor = Color3.fromRGB(120, 120, 130),  -- Grey for toggles
-		toggleTransparency = 0.78,
+		toggleColor = Color3.fromRGB(200, 200, 210),  -- Brighter Grey for toggles
 		isGlass = true,
 		glassTransparency = 0.58,
 		blurSize = 18
@@ -553,6 +544,31 @@ function MythicalUI:CreateWindow(config)
 				outerStroke.Color = Color3.fromRGB(170, 210, 255)
 				outerStroke.Transparency = 0.75
 				outerStroke.Parent = outerFrame
+				
+				-- GLOBAL GLASS OVERLAY (Depth & Reflection)
+				local glassOverlay = Instance.new("Frame")
+				glassOverlay.Name = "GlassOverlay"
+				glassOverlay.Size = UDim2.new(1, 0, 1, 0)
+				glassOverlay.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+				glassOverlay.BackgroundTransparency = 1
+				glassOverlay.ZIndex = 10 -- On top of most things but below interactables if possible, or use InputTransparent
+				glassOverlay.Parent = mainFrame
+				Window.GlassOverlay = glassOverlay
+				
+				local overlayCorner = Instance.new("UICorner")
+				overlayCorner.CornerRadius = UDim.new(0, 12)
+				overlayCorner.Parent = glassOverlay
+				
+				local overlayGradient = Instance.new("UIGradient")
+				overlayGradient.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255))
+				overlayGradient.Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 1),
+					NumberSequenceKeypoint.new(0.2, 0.95), -- Subtle shine top-left
+					NumberSequenceKeypoint.new(0.4, 1),
+					NumberSequenceKeypoint.new(1, 1)
+				})
+				overlayGradient.Rotation = 45
+				overlayGradient.Parent = glassOverlay
 			end
 			
 			-- Make visible
@@ -561,6 +577,7 @@ function MythicalUI:CreateWindow(config)
 			Window.OuterStrokeFrame.Visible = true
 			if Window.GlassInnerStroke then Window.GlassInnerStroke.Enabled = true end
 			if Window.DepthGradient then Window.DepthGradient.Enabled = true end
+			if Window.GlassOverlay then Window.GlassOverlay.Visible = true end
 			
 		else
 			-- Hide if exists
@@ -570,6 +587,7 @@ function MythicalUI:CreateWindow(config)
 				Window.OuterStrokeFrame.Visible = false
 				if Window.GlassInnerStroke then Window.GlassInnerStroke.Enabled = false end
 				if Window.DepthGradient then Window.DepthGradient.Enabled = false end
+				if Window.GlassOverlay then Window.GlassOverlay.Visible = false end
 			end
 		end
 		
@@ -1352,12 +1370,20 @@ function MythicalUI:CreateWindow(config)
 				
 				if Toggle.Value then
 					tween(toggleButton, {BackgroundColor3 = onColor}, 0.3)
+					-- Handle Transparency for Glass Toggles
+					if currentTheme.isGlass then
+						tween(toggleButton, {BackgroundTransparency = 0.3}, 0.3)
+					else
+						tween(toggleButton, {BackgroundTransparency = 0}, 0.3)
+					end
+					
 					tween(toggleIndicator, {
 						Position = UDim2.new(1, -20, 0.5, 0),
 						BackgroundColor3 = currentTheme.text
 					}, 0.3, Enum.EasingStyle.Quad)
 				else
 					tween(toggleButton, {BackgroundColor3 = currentTheme.topbar}, 0.3)
+					tween(toggleButton, {BackgroundTransparency = 0}, 0.3) -- Reset to opaque when off
 					tween(toggleIndicator, {
 						Position = UDim2.new(0, 2, 0.5, 0),
 						BackgroundColor3 = currentTheme.textDim
