@@ -114,17 +114,18 @@ local Themes = {
 	},
 	{
 		name = "Liquid Glass",
-		primary = Color3.fromRGB(0, 220, 255),        -- Bright cyan/aqua
-		secondary = Color3.fromRGB(100, 240, 255),    -- Light cyan  
-		background = Color3.fromRGB(5, 20, 30),       -- Very dark ocean blue
-		topbar = Color3.fromRGB(10, 35, 50),          -- Dark teal
-		element = Color3.fromRGB(15, 50, 70),         -- Deep teal (not grey!)
-		text = Color3.fromRGB(200, 255, 255),         -- Cyan-white
-		textDim = Color3.fromRGB(100, 200, 220),      -- Faded cyan
-		accent = Color3.fromRGB(0, 200, 255),         -- Pure cyan
-		particleColor = Color3.fromRGB(100, 255, 255), -- Bright cyan sparkles
-		isGlass = true,  -- Special flag for glass transparency effects
-		glassTransparency = 0.2  -- More transparent for better glass effect
+		primary = Color3.fromRGB(0, 122, 255),        -- iOS Blue
+		secondary = Color3.fromRGB(100, 200, 255),    -- Light Blue
+		background = Color3.fromRGB(240, 245, 255),   -- Light Glass Background
+		topbar = Color3.fromRGB(255, 255, 255),       -- White Topbar
+		element = Color3.fromRGB(200, 220, 255),      -- Light Element
+		text = Color3.fromRGB(50, 50, 70),            -- Dark Gray Text
+		textDim = Color3.fromRGB(150, 160, 170),      -- Light Gray Text
+		accent = Color3.fromRGB(0, 122, 255),         -- iOS Blue
+		particleColor = Color3.fromRGB(100, 200, 255),-- Cyan/Blue particles
+		isGlass = true,
+		glassTransparency = 0.58,
+		blurSize = 18
 	}
 }
 
@@ -400,80 +401,110 @@ function MythicalUI:CreateWindow(config)
 	
 	-- LIQUID GLASS EFFECTS (only when isGlass theme is active)
 	if currentTheme.isGlass then
-		local glassTransparency = currentTheme.glassTransparency or 0.25
+		local glassTransparency = currentTheme.glassTransparency or 0.58
+		local blurSize = currentTheme.blurSize or 18
 		
-		-- Make main frame semi-transparent (glass effect)
+		-- 1. GLOBAL BLUR (Managed)
+		local blurEffect = Instance.new("BlurEffect")
+		blurEffect.Size = blurSize
+		blurEffect.Parent = game:GetService("Lighting")
+		Window.BlurEffect = blurEffect -- Store for toggle/cleanup
+		
+		-- 2. MAIN GLASS FRAME (clean, refractive background)
+		mainFrame.BackgroundColor3 = currentTheme.background
 		mainFrame.BackgroundTransparency = glassTransparency
 		
-		-- Make topbar slightly more opaque but still glassy
-		topBar.BackgroundTransparency = glassTransparency * 0.6
-		
-		-- Glass reflection overlay (subtle gradient from top)
-		local glassReflection = Instance.new("Frame")
-		glassReflection.Name = "GlassReflection"
-		glassReflection.Size = UDim2.new(1, 0, 0.4, 0)
-		glassReflection.Position = UDim2.new(0, 0, 0, 0)
-		glassReflection.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-		glassReflection.BackgroundTransparency = 0.92
-		glassReflection.BorderSizePixel = 0
-		glassReflection.ZIndex = 2
-		glassReflection.Parent = mainFrame
-		
-		local reflectionCorner = Instance.new("UICorner")
-		reflectionCorner.CornerRadius = UDim.new(0, 12)
-		reflectionCorner.Parent = glassReflection
-		
-		-- Gradient for the reflection (fades down)
-		local reflectionGradient = Instance.new("UIGradient")
-		reflectionGradient.Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0),
-			NumberSequenceKeypoint.new(0.5, 0.5),
-			NumberSequenceKeypoint.new(1, 1)
+		-- 3. DEPTH GRADIENT
+		local depthGradient = Instance.new("UIGradient")
+		depthGradient.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 210, 230)) -- Subtle blue-shift at bottom
 		})
-		reflectionGradient.Rotation = 90
-		reflectionGradient.Parent = glassReflection
+		depthGradient.Rotation = 90
+		depthGradient.Parent = mainFrame
 		
-		-- Water shimmer effect (subtle moving highlight)
-		local shimmerOverlay = Instance.new("Frame")
-		shimmerOverlay.Name = "ShimmerOverlay"
-		shimmerOverlay.Size = UDim2.new(0.3, 0, 1, 0)
-		shimmerOverlay.Position = UDim2.new(-0.3, 0, 0, 0)
-		shimmerOverlay.BackgroundColor3 = currentTheme.particleColor
-		shimmerOverlay.BackgroundTransparency = 0.95
-		shimmerOverlay.BorderSizePixel = 0
-		shimmerOverlay.ZIndex = 2
-		shimmerOverlay.Parent = mainFrame
+		-- 4. REFRACTION OVAL (The "Shiny" bit)
+		local refraction = Instance.new("Frame")
+		refraction.Name = "RefractionLayer"
+		refraction.Size = UDim2.fromScale(1.9, 1.1)
+		refraction.Position = UDim2.fromScale(-0.45, -0.65)
+		refraction.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		refraction.BackgroundTransparency = 0.83
+		refraction.ZIndex = 2
+		refraction.Parent = mainFrame
 		
-		local shimmerGradient = Instance.new("UIGradient")
-		shimmerGradient.Transparency = NumberSequence.new({
+		local refractCorner = Instance.new("UICorner")
+		refractCorner.CornerRadius = UDim.new(1, 0)
+		refractCorner.Parent = refraction
+		
+		local refractFade = Instance.new("UIGradient")
+		refractFade.Transparency = NumberSequence.new({
 			NumberSequenceKeypoint.new(0, 1),
-			NumberSequenceKeypoint.new(0.4, 0.7),
-			NumberSequenceKeypoint.new(0.6, 0.7),
+			NumberSequenceKeypoint.new(0.22, 0.25),
+			NumberSequenceKeypoint.new(0.55, 0.9),
 			NumberSequenceKeypoint.new(1, 1)
 		})
-		shimmerGradient.Parent = shimmerOverlay
+		refractFade.Rotation = 110
+		refractFade.Parent = refraction
 		
-		-- Animate shimmer across the glass
+		-- 5. TRIPLE STROKE STACK (Simulated via nested frames for reliability)
+		-- We use invisible frames to hold the extra strokes safely
+		
+		-- Stroke 1: INNER CUT (Sharp edge) - Applied to MainFrame
+		local innerStroke = Instance.new("UIStroke")
+		innerStroke.Name = "InnerStroke"
+		innerStroke.Thickness = 1
+		innerStroke.Color = Color3.fromRGB(255, 255, 255)
+		innerStroke.Transparency = 0.6
+		innerStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		innerStroke.Parent = mainFrame
+		
+		-- Stroke 2: MID REFRACTIVE EDGE
+		local midFrame = Instance.new("Frame")
+		midFrame.Name = "MidStrokeFrame"
+		midFrame.Size = UDim2.new(1, 0, 1, 0)
+		midFrame.BackgroundTransparency = 1
+		midFrame.ZIndex = 1
+		midFrame.Parent = mainFrame
+		
+		local midCorner = Instance.new("UICorner")
+		midCorner.CornerRadius = UDim.new(0, 12)
+		midCorner.Parent = midFrame
+		
+		local midStroke = Instance.new("UIStroke")
+		midStroke.Thickness = 2
+		midStroke.Color = Color3.fromRGB(230, 240, 255)
+		midStroke.Transparency = 0.35
+		midStroke.Parent = midFrame
+		
+		-- Stroke 3: OUTER GLOW (Cool tint)
+		local outerFrame = Instance.new("Frame")
+		outerFrame.Name = "OuterStrokeFrame"
+		outerFrame.Size = UDim2.new(1, 0, 1, 0)
+		outerFrame.BackgroundTransparency = 1
+		outerFrame.ZIndex = 0
+		outerFrame.Parent = mainFrame
+		
+		local outerCorner = Instance.new("UICorner")
+		outerCorner.CornerRadius = UDim.new(0, 12)
+		outerCorner.Parent = outerFrame
+		
+		local outerStroke = Instance.new("UIStroke")
+		outerStroke.Thickness = 3
+		outerStroke.Color = Color3.fromRGB(170, 210, 255)
+		outerStroke.Transparency = 0.75
+		outerStroke.Parent = outerFrame
+		
+		-- Remove default stroke
+		stroke:Destroy()
+		
+		-- 6. MICRO REFRACTION ANIMATION
 		task.spawn(function()
-			while shimmerOverlay.Parent do
-				shimmerOverlay.Position = UDim2.new(-0.3, 0, 0, 0)
-				tween(shimmerOverlay, {Position = UDim2.new(1, 0, 0, 0)}, 4)
-				task.wait(4)
-				task.wait(2) -- Pause between shimmers
+			while refraction.Parent do
+				tween(refraction, {Position = UDim2.fromScale(-0.3, -0.7)}, 6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut).Completed:Wait()
+				tween(refraction, {Position = UDim2.fromScale(-0.5, -0.55)}, 6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut).Completed:Wait()
 			end
 		end)
-		
-		-- Add subtle inner glow/border for water droplet effect
-		local innerGlow = Instance.new("UIStroke")
-		innerGlow.Color = currentTheme.secondary
-		innerGlow.Thickness = 1
-		innerGlow.Transparency = 0.6
-		innerGlow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-		innerGlow.Parent = mainFrame
-		
-		-- Make stroke brighter/more visible
-		stroke.Transparency = 0.2
-		stroke.Thickness = 2
 	end
 	
 	-- Title
