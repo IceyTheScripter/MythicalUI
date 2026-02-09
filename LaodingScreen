@@ -1,0 +1,910 @@
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local RunService = game:GetService("RunService")
+
+-- COLOR THEMES SYSTEM
+local colorThemes = {
+	{
+		name = "Purple Mystic",
+		primary = Color3.fromRGB(138, 43, 226),
+		secondary = Color3.fromRGB(186, 85, 211),
+		background = Color3.fromRGB(25, 0, 50),
+		gradientStart = Color3.fromRGB(25, 0, 50),
+		gradientMid = Color3.fromRGB(0, 0, 0),
+		gradientEnd = Color3.fromRGB(50, 0, 75),
+		tint = Color3.fromRGB(200, 180, 255),
+		codeColor = Color3.fromRGB(180, 140, 255)
+	},
+	{
+		name = "Matrix Green",
+		primary = Color3.fromRGB(0, 255, 65),
+		secondary = Color3.fromRGB(0, 200, 50),
+		background = Color3.fromRGB(0, 20, 5),
+		gradientStart = Color3.fromRGB(0, 30, 10),
+		gradientMid = Color3.fromRGB(0, 0, 0),
+		gradientEnd = Color3.fromRGB(0, 40, 15),
+		tint = Color3.fromRGB(150, 255, 180),
+		codeColor = Color3.fromRGB(100, 255, 120)
+	},
+	{
+		name = "Blood Red",
+		primary = Color3.fromRGB(220, 20, 60),
+		secondary = Color3.fromRGB(255, 50, 80),
+		background = Color3.fromRGB(40, 0, 10),
+		gradientStart = Color3.fromRGB(50, 0, 15),
+		gradientMid = Color3.fromRGB(0, 0, 0),
+		gradientEnd = Color3.fromRGB(60, 0, 20),
+		tint = Color3.fromRGB(255, 150, 170),
+		codeColor = Color3.fromRGB(255, 100, 130)
+	},
+	{
+		name = "Deep Sea",
+		primary = Color3.fromRGB(0, 150, 255),
+		secondary = Color3.fromRGB(50, 180, 255),
+		background = Color3.fromRGB(0, 20, 40),
+		gradientStart = Color3.fromRGB(0, 25, 50),
+		gradientMid = Color3.fromRGB(0, 0, 0),
+		gradientEnd = Color3.fromRGB(0, 35, 70),
+		tint = Color3.fromRGB(180, 220, 255),
+		codeColor = Color3.fromRGB(120, 200, 255)
+	},
+	{
+		name = "Toxic Lime",
+		primary = Color3.fromRGB(190, 255, 0),
+		secondary = Color3.fromRGB(150, 220, 0),
+		background = Color3.fromRGB(20, 30, 0),
+		gradientStart = Color3.fromRGB(30, 40, 0),
+		gradientMid = Color3.fromRGB(0, 0, 0),
+		gradientEnd = Color3.fromRGB(40, 50, 0),
+		tint = Color3.fromRGB(220, 255, 150),
+		codeColor = Color3.fromRGB(200, 255, 100)
+	},
+	{
+		name = "Cyber Pink",
+		primary = Color3.fromRGB(255, 20, 147),
+		secondary = Color3.fromRGB(255, 105, 180),
+		background = Color3.fromRGB(40, 0, 30),
+		gradientStart = Color3.fromRGB(50, 0, 35),
+		gradientMid = Color3.fromRGB(0, 0, 0),
+		gradientEnd = Color3.fromRGB(60, 0, 45),
+		tint = Color3.fromRGB(255, 180, 220),
+		codeColor = Color3.fromRGB(255, 150, 200)
+	},
+	{
+		name = "Electric Blue",
+		primary = Color3.fromRGB(0, 255, 255),
+		secondary = Color3.fromRGB(50, 200, 255),
+		background = Color3.fromRGB(0, 25, 35),
+		gradientStart = Color3.fromRGB(0, 30, 40),
+		gradientMid = Color3.fromRGB(0, 0, 0),
+		gradientEnd = Color3.fromRGB(0, 40, 55),
+		tint = Color3.fromRGB(180, 240, 255),
+		codeColor = Color3.fromRGB(150, 255, 255)
+	},
+	{
+		name = "Inferno Orange",
+		primary = Color3.fromRGB(255, 100, 0),
+		secondary = Color3.fromRGB(255, 150, 50),
+		background = Color3.fromRGB(40, 15, 0),
+		gradientStart = Color3.fromRGB(50, 20, 0),
+		gradientMid = Color3.fromRGB(0, 0, 0),
+		gradientEnd = Color3.fromRGB(60, 25, 0),
+		tint = Color3.fromRGB(255, 200, 150),
+		codeColor = Color3.fromRGB(255, 180, 100)
+	}
+}
+
+-- Pick a random theme
+local selectedTheme = colorThemes[math.random(1, #colorThemes)]
+print("🎨 ENYXE Theme: " .. selectedTheme.name)
+
+local fakeCodeSnippets = {
+    "local x = math.random()",
+    "if value ~= nil then",
+    "for i = 1, #data do",
+    "task.spawn(function()",
+    "TweenService:Create(",
+    "Vector3.new(x, y, z)",
+    "UDim2.fromScale(0.5, 0.5)",
+    "while true do",
+    "pcall(function()",
+    "return nil -- TODO",
+    "local _ = {}",
+    "table.insert(buffer, v)",
+    "coroutine.wrap(function()",
+    "warn('DEBUG')",
+    "-- FIXME later",
+    "game:GetService()",
+    "math.clamp(v, 0, 1)",
+    "repeat task.wait() until ready",
+    "local success, err = pcall(",
+    "local __ghost = not not false",
+    "for _ = 0, math.huge do break end",
+    "signal:FireDeferred('???')",
+    "if typeof(obj) == 'table' and obj[0] then",
+    "local hash = tostring(os.clock()):gsub('%.', '')",
+    "do -- scope prison",
+    "assert(type(env) == 'userdata', 'nah')",
+    "local t = setmetatable({}, {__mode = 'kv'})",
+    "task.wait(math.random() / math.random())",
+    "string.split('a,b,c', ',')[math.random(1,3)]",
+    "debug.traceback('why am i here')",
+    "local function _f(...) return select('#', ...) end",
+    "if math.random() < 0.01 then warn('entropy leak') end",
+    "rawset(cache, key, math.random(9999))",
+    "local r = bit32.bxor(i, 0xBEEF)",
+    "table.freeze({1,2,3}) -- sure why not",
+    "spawn(function() for _=1,2 do end end)",
+    "local ok = coroutine.resume(coroutine.create(function() end))",
+    "if not ok then return 'broken' end",
+    "repeat until tick() % 1 < 0.0001",
+    "local phantom = function() return phantom end",
+    "setfenv(1, {}) -- absolutely illegal",
+    "local noise = math.noise(i, os.time(), -1)",
+    "task.defer(print, 'async spaghetti')",
+    "if _G['??'] then _G['??']() end",
+    "local _void = function() end"
+}
+
+local function randomCodeLine()
+	local line = fakeCodeSnippets[math.random(#fakeCodeSnippets)]
+	local garbage = {"", "", "()", " {}", " []", " ;", " ::", " =>"}
+	return string.rep(" ", math.random(0, 6)) .. line .. garbage[math.random(#garbage)]
+end
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "EnyxeSplash"
+screenGui.ResetOnSpawn = false
+screenGui.DisplayOrder = 10
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = playerGui
+
+-- Background Frame - THEMED
+local background = Instance.new("Frame")
+background.Name = "Background"
+background.Size = UDim2.new(1, 0, 1, 0)
+background.Position = UDim2.new(0, 0, 0, 0)
+background.BackgroundColor3 = selectedTheme.background
+background.BackgroundTransparency = 1
+background.BorderSizePixel = 0
+background.Parent = screenGui
+
+-- Gradient overlay - THEMED
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, selectedTheme.gradientStart),
+	ColorSequenceKeypoint.new(0.5, selectedTheme.gradientMid),
+	ColorSequenceKeypoint.new(1, selectedTheme.gradientEnd)
+}
+gradient.Rotation = 45
+gradient.Parent = background
+
+-- Blur Effect
+local blurEffect = Instance.new("BlurEffect")
+blurEffect.Size = 0
+blurEffect.Parent = game.Lighting
+
+-- Color Correction - THEMED
+local colorCorrection = Instance.new("ColorCorrectionEffect")
+colorCorrection.Brightness = 0
+colorCorrection.Contrast = 0
+colorCorrection.Saturation = 0
+colorCorrection.TintColor = Color3.fromRGB(255, 255, 255)
+colorCorrection.Parent = game.Lighting
+
+-- Container for text and effects
+local container = Instance.new("Frame")
+container.Name = "Container"
+container.Size = UDim2.new(0, 600, 0, 300)
+container.Position = UDim2.new(0.5, 0, 0.5, 0)
+container.AnchorPoint = Vector2.new(0.5, 0.5)
+container.BackgroundTransparency = 1
+container.Parent = screenGui
+
+-- Create rotating rings - THEMED
+local rings = {}
+for i = 1, 3 do
+	local ring = Instance.new("ImageLabel")
+	ring.Name = "Ring" .. i
+	ring.Size = UDim2.new(0, 400 + (i * 100), 0, 400 + (i * 100))
+	ring.Position = UDim2.new(0.5, 0, 0.5, 0)
+	ring.AnchorPoint = Vector2.new(0.5, 0.5)
+	ring.BackgroundTransparency = 1
+	ring.Image = "rbxassetid://3926305904"
+	ring.ImageColor3 = selectedTheme.primary
+	ring.ImageTransparency = 1
+	ring.Parent = container
+	
+	table.insert(rings, ring)
+end
+
+-- Create light rays - THEMED
+local lightRays = {}
+for i = 1, 9 do
+	local ray = Instance.new("Frame")
+	ray.Name = "Ray" .. i
+	ray.Size = UDim2.new(0, 4, 0, 800)
+	ray.Position = UDim2.new(0.5, 0, 0.5, 0)
+	ray.AnchorPoint = Vector2.new(0.5, 0.5)
+	ray.BackgroundColor3 = selectedTheme.primary
+	ray.BackgroundTransparency = 1
+	ray.BorderSizePixel = 0
+	ray.Rotation = (i - 1) * 45
+	ray.Parent = container
+	
+	local gradient = Instance.new("UIGradient")
+	gradient.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, selectedTheme.primary),
+		ColorSequenceKeypoint.new(0.5, selectedTheme.secondary),
+		ColorSequenceKeypoint.new(1, selectedTheme.primary)
+	}
+	gradient.Rotation = 90
+	gradient.Transparency = NumberSequence.new{
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.4, 0.3),
+		NumberSequenceKeypoint.new(0.5, 0),
+		NumberSequenceKeypoint.new(0.6, 0.3),
+		NumberSequenceKeypoint.new(1, 1)
+	}
+	gradient.Parent = ray
+	
+	table.insert(lightRays, ray)
+end
+
+-- Create individual letters for ENYXE - THEMED
+local letters = {"E", "N", "Y", "X", "E"}
+local letterFrames = {}
+local letterSpacing = 100
+
+for i, letter in ipairs(letters) do
+	local letterLabel = Instance.new("TextLabel")
+	letterLabel.Name = "Letter" .. i
+	letterLabel.Size = UDim2.new(0, 100, 0, 150)
+	letterLabel.Position = UDim2.new(0, (i - 1) * letterSpacing + 50, 0.5, 0)
+	letterLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+	letterLabel.BackgroundTransparency = 1
+	letterLabel.Text = letter
+	letterLabel.Font = Enum.Font.GothamBold
+	letterLabel.TextSize = 100
+	letterLabel.TextColor3 = selectedTheme.primary
+	letterLabel.TextTransparency = 1
+	letterLabel.TextStrokeTransparency = 0.5
+	letterLabel.TextStrokeColor3 = selectedTheme.secondary
+	letterLabel.ZIndex = 5
+	letterLabel.Parent = container
+	
+	-- Add shadow effect
+	local shadow = letterLabel:Clone()
+	shadow.Name = "Shadow"
+	shadow.Position = UDim2.new(0, (i - 1) * letterSpacing + 55, 0.5, 5)
+	shadow.TextColor3 = Color3.fromRGB(0, 0, 0)
+	shadow.TextStrokeTransparency = 1
+	shadow.ZIndex = 4
+	shadow.Parent = container
+	
+	table.insert(letterFrames, {main = letterLabel, shadow = shadow})
+end
+
+-- Create advanced particle system - THEMED
+local particles = {}
+for i = 1, 50 do
+	local particle = Instance.new("Frame")
+	particle.Name = "Particle" .. i
+	local size = math.random(4, 12)
+	particle.Size = UDim2.new(0, size, 0, size)
+	particle.Position = UDim2.new(math.random(), 0, math.random(), 0)
+	particle.AnchorPoint = Vector2.new(0.5, 0.5)
+	particle.BackgroundColor3 = selectedTheme.primary
+	particle.BackgroundTransparency = 1
+	particle.BorderSizePixel = 0
+	particle.ZIndex = 3
+	particle.Parent = container
+	
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = particle
+	
+	table.insert(particles, particle)
+end
+
+-- Create energy orbs - THEMED
+local orbs = {}
+for i = 1, 6 do
+	local orb = Instance.new("Frame")
+	orb.Name = "Orb" .. i
+	orb.Size = UDim2.new(0, 20, 0, 20)
+	orb.Position = UDim2.new(0.5, 0, 0.5, 0)
+	orb.AnchorPoint = Vector2.new(0.5, 0.5)
+	orb.BackgroundColor3 = selectedTheme.secondary
+	orb.BackgroundTransparency = 1
+	orb.BorderSizePixel = 0
+	orb.ZIndex = 6
+	orb.Parent = container
+	
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = orb
+	
+	local glow = Instance.new("ImageLabel")
+	glow.Size = UDim2.new(2, 0, 2, 0)
+	glow.Position = UDim2.new(0.5, 0, 0.5, 0)
+	glow.AnchorPoint = Vector2.new(0.5, 0.5)
+	glow.BackgroundTransparency = 1
+	glow.Image = "rbxassetid://3926305904"
+	glow.ImageColor3 = selectedTheme.secondary
+	glow.ImageTransparency = 1
+	glow.Parent = orb
+	
+	table.insert(orbs, {frame = orb, glow = glow})
+end
+
+-- Create CODE RING - THEMED
+local codeLines = {}
+for i = 1, 90 do
+    local depthFactor = math.random()
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0, 400, 0, 22)
+    label.Position = UDim2.new(0.5, 0, 0.5, 0)
+    label.AnchorPoint = Vector2.new(0.5, 0.5)
+    label.BackgroundTransparency = 1
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Text = randomCodeLine()
+    label.Font = Enum.Font.Code
+    label.TextSize = 12 + math.floor(3 * (1 - depthFactor))
+    label.TextColor3 = selectedTheme.codeColor
+    label.TextTransparency = 0.4 + (0.3 * depthFactor)
+    label.ZIndex = 1
+    label.Parent = container
+
+    table.insert(codeLines, {
+        label = label,
+        angle = (i / 28) * math.pi * 2,
+        radius = 220 + math.random(-30, 30),
+        speed = 0.15 + math.random() * 0.2
+    })
+end
+
+-- Create wave lines - THEMED
+local waves = {}
+for i = 1, 5 do
+	local wave = Instance.new("Frame")
+	wave.Name = "Wave" .. i
+	wave.Size = UDim2.new(1, 0, 0, 3)
+	wave.Position = UDim2.new(0, 0, 0.2 + (i * 0.12), 0)
+	wave.AnchorPoint = Vector2.new(0, 0.5)
+	wave.BackgroundColor3 = selectedTheme.primary
+	wave.BackgroundTransparency = 1
+	wave.BorderSizePixel = 0
+	wave.ZIndex = 2
+	wave.Parent = container
+	
+	local gradient = Instance.new("UIGradient")
+	gradient.Transparency = NumberSequence.new{
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.5, 0),
+		NumberSequenceKeypoint.new(1, 1)
+	}
+	gradient.Parent = wave
+	
+	table.insert(waves, wave)
+end
+
+-- Sound Effects
+local sounds = {}
+
+local riseSound = Instance.new("Sound")
+riseSound.SoundId = "rbxassetid://9125402735"
+riseSound.Volume = 0.4
+riseSound.Parent = screenGui
+sounds.rise = riseSound
+
+local chimeSound = Instance.new("Sound")
+chimeSound.SoundId = "rbxassetid://124728589942760"
+chimeSound.Volume = 0.35
+chimeSound.Parent = screenGui
+sounds.chime = chimeSound
+
+local ambientSound = Instance.new("Sound")
+ambientSound.SoundId = "rbxassetid://112070641493834"
+ambientSound.Volume = 0.25
+ambientSound.Looped = false
+ambientSound.Parent = screenGui
+sounds.ambient = ambientSound
+
+local sparkleSound = Instance.new("Sound")
+sparkleSound.SoundId = "rbxassetid://6869244313"
+sparkleSound.Volume = 0.3
+sparkleSound.Parent = screenGui
+sounds.sparkle = sparkleSound
+
+local whooshSound = Instance.new("Sound")
+whooshSound.SoundId = "rbxassetid://184377433855544"
+whooshSound.Volume = 0.4
+whooshSound.Parent = screenGui
+sounds.whoosh = whooshSound
+
+local impactSound = Instance.new("Sound")
+impactSound.SoundId = "rbxassetid://101173576821439"
+impactSound.Volume = 0.8
+impactSound.Parent = screenGui
+sounds.impact = impactSound
+
+local endWhooshSound = Instance.new("Sound")
+endWhooshSound.SoundId = "rbxassetid://1177785010"
+endWhooshSound.Volume = 0.45
+endWhooshSound.Parent = screenGui
+sounds.endWhoosh = endWhooshSound
+
+local ezWhooshSound = Instance.new("Sound")
+ezWhooshSound.SoundId = "rbxassetid://123796710194563"
+ezWhooshSound.Volume = 0.4
+ezWhooshSound.Parent = screenGui
+sounds.ezWhoosh = ezWhooshSound
+
+-- Animation Functions
+local function fadeInBackground()
+	sounds.rise:Play()
+	
+	local tween = TweenService:Create(background, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+		BackgroundTransparency = 0.1
+	})
+	tween:Play()
+	
+	local colorTween = TweenService:Create(colorCorrection, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+		Saturation = -0.3,
+		TintColor = selectedTheme.tint
+	})
+	colorTween:Play()
+end
+
+local function blurIn()
+	local tween = TweenService:Create(blurEffect, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+		Size = 24
+	})
+	tween:Play()
+end
+
+local function animateRings()
+	for i, ring in ipairs(rings) do
+		task.spawn(function()
+			local fadeTween = TweenService:Create(ring, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+				ImageTransparency = 0.7 - (i * 0.1)
+			})
+			fadeTween:Play()
+			
+			while ring.Parent do
+				local direction = (i % 2 == 0) and 360 or -360
+				local duration = 8 + (i * 2)
+				
+				local rotateTween = TweenService:Create(ring, TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut), {
+					Rotation = ring.Rotation + direction
+				})
+				rotateTween:Play()
+				rotateTween.Completed:Wait()
+			end
+		end)
+	end
+end
+
+local function animateLightRays()
+	sounds.ambient:Play()
+	sounds.whoosh:Play()
+	
+	for i, ray in ipairs(lightRays) do
+		task.spawn(function()
+			task.wait(i * 0.05)
+			
+			local fadeTween = TweenService:Create(ray, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+				BackgroundTransparency = 0.3
+			})
+			fadeTween:Play()
+			
+			while ray.Parent do
+				local rotateTween = TweenService:Create(ray, TweenInfo.new(20, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut), {
+					Rotation = ray.Rotation + 360
+				})
+				rotateTween:Play()
+				rotateTween.Completed:Wait()
+			end
+		end)
+	end
+end
+
+local function animateCodeRing()
+	RunService.RenderStepped:Connect(function(dt)
+		for _, data in ipairs(codeLines) do
+			data.angle += data.speed * dt
+
+			local x = math.cos(data.angle) * data.radius
+			local y = math.sin(data.angle) * data.radius * 0.9
+
+			data.label.Position = UDim2.new(0.5, x, 0.5, y)
+			data.label.Rotation = math.deg(data.angle) + 180
+		end
+	end)
+end
+
+local function animateLetters()
+	local dropDurations = {0.15, 0.20, 0.23, 0.25, 0.27}
+	
+	for i, letterData in ipairs(letterFrames) do
+		local chimeClone = sounds.chime:Clone()
+		chimeClone.PlaybackSpeed = 0.85 + (i * 0.08)
+		chimeClone.Parent = screenGui
+		chimeClone:Play()
+		game:GetService("Debris"):AddItem(chimeClone, 2)
+		
+		letterData.main.Position = UDim2.new(0, (i - 1) * letterSpacing + 50, -0.5, 0)
+		letterData.shadow.Position = UDim2.new(0, (i - 1) * letterSpacing + 55, -0.5, 5)
+		letterData.main.Rotation = math.random(-45, 45)
+		letterData.shadow.Rotation = letterData.main.Rotation
+		letterData.main.TextTransparency = 1
+		letterData.shadow.TextTransparency = 1
+		
+		local currentDropDuration = dropDurations[i]
+		
+		local dropTween = TweenService:Create(letterData.main, TweenInfo.new(currentDropDuration, Enum.EasingStyle.Bounce, Enum.EasingDirection.Out), {
+			Position = UDim2.new(0, (i - 1) * letterSpacing + 50, 0.5, 0),
+			Rotation = 0
+		})
+		
+		local shadowDropTween = TweenService:Create(letterData.shadow, TweenInfo.new(currentDropDuration, Enum.EasingStyle.Bounce, Enum.EasingDirection.Out), {
+			Position = UDim2.new(0, (i - 1) * letterSpacing + 55, 0.5, 5),
+			Rotation = 0
+		})
+		
+		local fadeTween = TweenService:Create(letterData.main, TweenInfo.new(currentDropDuration * 0.67, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+			TextTransparency = 0,
+			TextStrokeTransparency = 0.5
+		})
+		
+		local shadowFadeTween = TweenService:Create(letterData.shadow, TweenInfo.new(currentDropDuration * 0.67, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+			TextTransparency = 0.7
+		})
+		
+		dropTween:Play()
+		shadowDropTween:Play()
+		fadeTween:Play()
+		shadowFadeTween:Play()
+		
+		task.spawn(function()
+			task.wait(currentDropDuration)
+			
+			local impactClone = sounds.impact:Clone()
+			impactClone.Volume = 0.3 + (i * 0.1)
+			impactClone.PlaybackSpeed = 0.85 + (i * 0.05)
+			impactClone.Parent = screenGui
+			impactClone:Play()
+			game:GetService("Debris"):AddItem(impactClone, 2)
+			
+			local originalPos = container.Position
+			local shakeIntensity = 15 + (i * 3)
+			local shakeDuration = 0.3
+			local shakeSpeed = 0.03
+			
+			local elapsed = 0
+			while elapsed < shakeDuration do
+				local progress = elapsed / shakeDuration
+				local currentIntensity = shakeIntensity * (1 - progress)
+				
+				local offsetX = math.random(-currentIntensity, currentIntensity)
+				local offsetY = math.random(-currentIntensity, currentIntensity)
+				
+				container.Position = UDim2.new(
+					originalPos.X.Scale,
+					originalPos.X.Offset + offsetX,
+					originalPos.Y.Scale,
+					originalPos.Y.Offset + offsetY
+				)
+				
+				task.wait(shakeSpeed)
+				elapsed = elapsed + shakeSpeed
+			end
+			
+			container.Position = originalPos
+		end)
+		
+		task.wait(currentDropDuration + 0.15)
+		
+		task.spawn(function()
+			task.wait(0.6)
+			while letterData.main.Parent do
+				local floatUp = TweenService:Create(letterData.main, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					Position = UDim2.new(0, (i - 1) * letterSpacing + 50, 0.48, 0)
+				})
+				floatUp:Play()
+				floatUp.Completed:Wait()
+				
+				local floatDown = TweenService:Create(letterData.main, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					Position = UDim2.new(0, (i - 1) * letterSpacing + 50, 0.52, 0)
+				})
+				floatDown:Play()
+				floatDown.Completed:Wait()
+			end
+		end)
+		
+		task.spawn(function()
+			while letterData.main.Parent do
+				local glowTween = TweenService:Create(letterData.main, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					TextStrokeTransparency = 0
+				})
+				glowTween:Play()
+				glowTween.Completed:Wait()
+				
+				local dimTween = TweenService:Create(letterData.main, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					TextStrokeTransparency = 0.5
+				})
+				dimTween:Play()
+				dimTween.Completed:Wait()
+			end
+		end)
+	end
+end
+
+local function animateEzFinale()
+	task.wait(0.8) -- Last 1.5 seconds before fadeout
+	
+	local ezLetters = {".","e","z"}
+	local ezLabels = {}
+	
+	for i, letter in ipairs(ezLetters) do
+		task.wait(0.15)
+		
+		-- Final position - in line with ENYXE letters (relative to container)
+		-- The last "E" is at position 4 in the letterSpacing (0-indexed would be 4)
+		local finalXOffset = (4 * letterSpacing + 50) + (i * 40) -- After last E
+		local finalYOffset = 25 -- Same vertical position as letters
+		
+		-- Random START position on right half (absolute screen position)
+		local randomStartX = math.random(800, 1200)
+		local randomStartY = math.random(200, 600)
+		
+		local ezLabel = Instance.new("TextLabel")
+		ezLabel.Name = "Ez" .. i
+		ezLabel.Size = UDim2.new(0, 50, 0, 50)
+		ezLabel.Position = UDim2.new(0, randomStartX, 0, randomStartY)
+		ezLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+		ezLabel.BackgroundTransparency = 1
+		ezLabel.Text = letter
+		ezLabel.Font = Enum.Font.GothamBold
+		ezLabel.TextSize = 50
+		ezLabel.TextColor3 = selectedTheme.primary
+		ezLabel.TextTransparency = 1
+		ezLabel.TextStrokeTransparency = 1
+		ezLabel.ZIndex = 10
+		ezLabel.Parent = container -- Put it in the container so it moves with everything
+		
+		table.insert(ezLabels, ezLabel)
+		
+		-- Whoosh sound
+		local whooshClone = sounds.ezWhoosh:Clone()
+		whooshClone.PlaybackSpeed = 1 + (i * 0.1)
+		whooshClone.Parent = screenGui
+		whooshClone:Play()
+		game:GetService("Debris"):AddItem(whooshClone, 2)
+		
+		-- Fly in from random position to final position (both relative to container now)
+		local flyTween = TweenService:Create(ezLabel, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Position = UDim2.new(0, finalXOffset, 0.5, finalYOffset)
+		})
+		
+		local fadeTween = TweenService:Create(ezLabel, TweenInfo.new(0.4, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+			TextTransparency = 0,
+			TextStrokeTransparency = 0.7
+		})
+		
+		flyTween:Play()
+		fadeTween:Play()
+	end
+	
+	return ezLabels
+end
+
+local function animateParticles()
+	sounds.sparkle:Play()
+	
+	for i, particle in ipairs(particles) do
+		task.spawn(function()
+			task.wait(math.random() * 0.5)
+			
+			local fadeTween = TweenService:Create(particle, TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+				BackgroundTransparency = 0.2 + (math.random() * 0.3)
+			})
+			fadeTween:Play()
+			
+			while particle.Parent do
+				local randomX = math.random()
+				local randomY = math.random()
+				local duration = 2 + math.random() * 3
+				
+				local floatTween = TweenService:Create(particle, TweenInfo.new(duration, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					Position = UDim2.new(randomX, 0, randomY, 0)
+				})
+				floatTween:Play()
+				
+				local pulseTween = TweenService:Create(particle, TweenInfo.new(duration / 2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					Size = UDim2.new(0, particle.Size.X.Offset * 1.5, 0, particle.Size.Y.Offset * 1.5)
+				})
+				pulseTween:Play()
+				
+				floatTween.Completed:Wait()
+				
+				local shrinkTween = TweenService:Create(particle, TweenInfo.new(duration / 2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					Size = UDim2.new(0, particle.Size.X.Offset / 1.5, 0, particle.Size.Y.Offset / 1.5)
+				})
+				shrinkTween:Play()
+			end
+		end)
+	end
+end
+
+local function animateOrbs()
+	for i, orbData in ipairs(orbs) do
+		task.spawn(function()
+			local angle = (i - 1) * (360 / #orbs)
+			local radius = 150
+			
+			task.wait(i * 0.08)
+			
+			local fadeTween = TweenService:Create(orbData.frame, TweenInfo.new(0.4, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+				BackgroundTransparency = 0.3
+			})
+			local glowFadeTween = TweenService:Create(orbData.glow, TweenInfo.new(0.4, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+				ImageTransparency = 0.5
+			})
+			fadeTween:Play()
+			glowFadeTween:Play()
+			
+			while orbData.frame.Parent do
+				angle = angle + 2
+				local radians = math.rad(angle)
+				local x = math.cos(radians) * radius
+				local y = math.sin(radians) * radius
+				
+				orbData.frame.Position = UDim2.new(0.5, x, 0.5, y)
+				task.wait(0.03)
+			end
+		end)
+	end
+end
+
+local function animateWaves()
+	for i, wave in ipairs(waves) do
+		task.spawn(function()
+			task.wait(i * 0.15)
+			
+			local fadeTween = TweenService:Create(wave, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+				BackgroundTransparency = 0.4
+			})
+			fadeTween:Play()
+			
+			while wave.Parent do
+				local expandTween = TweenService:Create(wave, TweenInfo.new(1.5 + (i * 0.2), Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					Size = UDim2.new(1.3, 0, 0, 3),
+					BackgroundTransparency = 0.7
+				})
+				expandTween:Play()
+				expandTween.Completed:Wait()
+				
+				local shrinkTween = TweenService:Create(wave, TweenInfo.new(1.5 + (i * 0.2), Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					Size = UDim2.new(1, 0, 0, 3),
+					BackgroundTransparency = 0.4
+				})
+				shrinkTween:Play()
+				shrinkTween.Completed:Wait()
+			end
+		end)
+	end
+end
+
+local function fadeOut()
+	local ezLabels = animateEzFinale() -- Start .ez animation
+	
+	task.wait(1.5) -- Wait for .ez to finish
+	
+	sounds.endWhoosh:Play()
+	
+	local bgTween = TweenService:Create(background, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+		BackgroundTransparency = 1
+	})
+	
+	local blurTween = TweenService:Create(blurEffect, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+		Size = 0
+	})
+	
+	local colorTween = TweenService:Create(colorCorrection, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+		Saturation = 0,
+		TintColor = Color3.fromRGB(255, 255, 255)
+	})
+	
+	bgTween:Play()
+	blurTween:Play()
+	colorTween:Play()
+	
+	-- Fade out .ez letters
+	for _, ezLabel in ipairs(ezLabels) do
+		local tween = TweenService:Create(ezLabel, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+			TextTransparency = 1,
+			TextStrokeTransparency = 1
+		})
+		tween:Play()
+	end
+	
+	for _, letterData in ipairs(letterFrames) do
+		local mainTween = TweenService:Create(letterData.main, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+			TextTransparency = 1,
+			TextStrokeTransparency = 1,
+			Position = UDim2.new(letterData.main.Position.X.Scale, letterData.main.Position.X.Offset, 1.5, 0)
+		})
+		local shadowTween = TweenService:Create(letterData.shadow, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+			TextTransparency = 1,
+			Position = UDim2.new(letterData.shadow.Position.X.Scale, letterData.shadow.Position.X.Offset, 1.5, 5)
+		})
+		mainTween:Play()
+		shadowTween:Play()
+	end
+	
+	for _, particle in ipairs(particles) do
+		local tween = TweenService:Create(particle, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+			BackgroundTransparency = 1
+		})
+		tween:Play()
+	end
+	
+	for _, wave in ipairs(waves) do
+		local tween = TweenService:Create(wave, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+			BackgroundTransparency = 1
+		})
+		tween:Play()
+	end
+	
+	for _, ring in ipairs(rings) do
+		local tween = TweenService:Create(ring, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+			ImageTransparency = 1
+		})
+		tween:Play()
+	end
+	
+	for _, ray in ipairs(lightRays) do
+		local tween = TweenService:Create(ray, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+			BackgroundTransparency = 1
+		})
+		tween:Play()
+	end
+	
+	for _, orbData in ipairs(orbs) do
+		local frameTween = TweenService:Create(orbData.frame, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+			BackgroundTransparency = 1
+		})
+		local glowTween = TweenService:Create(orbData.glow, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+			ImageTransparency = 1
+		})
+		frameTween:Play()
+		glowTween:Play()
+	end
+	
+	task.wait(1.2)
+	blurEffect:Destroy()
+	colorCorrection:Destroy()
+	screenGui:Destroy()
+end
+
+-- Run the animation sequence
+fadeInBackground()
+blurIn()
+task.wait(0.2)
+animateCodeRing()
+animateLightRays()
+task.wait(0.3)
+animateParticles()
+animateOrbs()
+animateWaves()
+task.wait(0.3)
+animateLetters()
+task.wait(0.8)
+fadeOut()
+
+wait(0.05)
