@@ -328,10 +328,12 @@ function MythicalUI:CreateWindow(config)
 	minimizeBtn.MouseButton1Click:Connect(function()
 		playSound(Sounds.whoosh, 0.4, isMinimized and 1.2 or 0.8)
 		isMinimized = not isMinimized
-		
+	
 		if isMinimized then
-			tween(mainFrame, {Size = UDim2.new(mainFrame.Size.X.Scale, mainFrame.Size.X.Offset, 0, 45)}, 0.3, Enum.EasingStyle.Quad)
+			-- Minimize to small bar only (script name + buttons)
+			tween(mainFrame, {Size = UDim2.new(0, 240, 0, 45)}, 0.3, Enum.EasingStyle.Quad)
 		else
+			-- Restore to full size
 			tween(mainFrame, {Size = UDim2.fromScale(0.45, 0.65)}, 0.3, Enum.EasingStyle.Quad)
 		end
 	end)
