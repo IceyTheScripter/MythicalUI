@@ -1,21 +1,28 @@
-local httpService = game:GetService("HttpService")
+-- ========================
+-- Mythical SaveManager
+-- ========================
+local HttpService = game:GetService("HttpService")
 
 local SaveManager = {} do
-	SaveManager.Folder = "MythicalScriptHub/game-configs"
+    SaveManager.Folder = "MythicalScriptHub/game-configs"
     SaveManager.Settings = {}
+    SaveManager.OptionsRegistry = {} -- Stores all UI elements
     SaveManager.IgnoreThemeSettings = false
     SaveManager.IgnoreIndexes = {}
-    SaveManager.Options = {}
+    SaveManager.Library = nil
 
+    -- Set the folder for configs
     function SaveManager:SetFolder(folder)
-		self.Folder = folder
-		self:BuildFolderTree()
-	end
+        self.Folder = folder
+        self:BuildFolderTree()
+    end
 
+    -- Connect the UI library
     function SaveManager:SetLibrary(library)
-		self.Library = library
-	end
+        self.Library = library
+    end
 
+    -- Ignore theme settings in save
     function SaveManager:IgnoreThemeSettings()
         self.IgnoreThemeSettings = true
     end
@@ -24,92 +31,119 @@ local SaveManager = {} do
         self.IgnoreIndexes = indexes
     end
 
+    -- Make folder structure
     function SaveManager:BuildFolderTree()
-		local paths = {}
-		local parts = self.Folder:split("/")
-		for idx = 1, #parts do
-			paths[#paths + 1] = table.concat(parts, "/", 1, idx)
-		end
-		table.insert(paths, self.Folder)
-		table.insert(paths, self.Folder .. "/configs")
+        local paths = {}
+        local parts = self.Folder:split("/")
+        for idx = 1, #parts do
+            table.insert(paths, table.concat(parts, "/", 1, idx))
+        end
+        table.insert(paths, self.Folder .. "/configs")
 
-		for i = 1, #paths do
-			local str = paths[i]
-			if not isfolder(str) then
-				makefolder(str)
-			end
-		end
-	end
-
-    function SaveManager:SaveSettings()
-        writefile(self.Folder .. "/config.json", httpService:JSONEncode(SaveManager.Settings))
+        for _, path in next, paths do
+            if not isfolder(path) then
+                makefolder(path)
+            end
+        end
     end
 
+    -- Register a UI element for saving/loading
+    function SaveManager:RegisterOption(key, element)
+        self.OptionsRegistry[key] = element
+    end
+
+    -- Save all registered options
+    function SaveManager:SaveSettings()
+        local saveTable = {}
+        for key, element in next, self.OptionsRegistry do
+            if not table.find(self.IgnoreIndexes, key) then
+                if element.Type == "Toggle" or element.Type == "Slider" or element.Type == "Dropdown" or element.Type == "Input" then
+                    saveTable[key] = element:GetValue()
+                elseif element.Type == "Colorpicker" then
+                    saveTable[key] = {
+                        Color = element:GetValue(),
+                        Transparency = element.Transparency or 0
+                    }
+                end
+            end
+        end
+
+        if self.IgnoreThemeSettings and saveTable.Theme then
+            saveTable.Theme = nil
+        end
+
+        writefile(self.Folder .. "/config.json", HttpService:JSONEncode(saveTable))
+    end
+
+    -- Load all registered options
     function SaveManager:LoadSettings()
         local path = self.Folder .. "/config.json"
         if isfile(path) then
             local data = readfile(path)
-            local success, decoded = pcall(httpService.JSONDecode, httpService, data)
-
-            if success then
-                for i, v in next, decoded do
-                    SaveManager.Settings[i] = v
+            local success, decoded = pcall(HttpService.JSONDecode, HttpService, data)
+            if success and decoded then
+                for key, value in next, decoded do
+                    local element = self.OptionsRegistry[key]
+                    if element then
+                        if element.Type == "Colorpicker" then
+                            element:SetValueRGB(value.Color)
+                            if value.Transparency then
+                                element.Transparency = value.Transparency
+                            end
+                        else
+                            element:SetValue(value)
+                        end
+                    end
+                    self.Settings[key] = value
                 end
             end
         end
     end
 
+    -- Build Settings tab automatically
     function SaveManager:BuildConfigSection(tab)
-        assert(self.Library, "Must set SaveManager.Library")
-        
-        SaveManager:LoadSettings()
-        
-        -- Save Config Button
-        tab:AddButton({
-            Title = "Save Config",
-            Description = "Save your current settings",
-            Callback = function()
-                SaveManager:SaveSettings()
+        assert(self.Library, "SaveManager.Library must be set!")
+
+        local buttons = {
+            {Title = "Save Config", Callback = function()
+                self:SaveSettings()
                 self.Library:Notify({
                     Title = "Config Saved",
                     Content = "Your settings have been saved!",
                     Duration = 3
                 })
-            end
-        })
+            end},
 
-        -- Load Config Button
-        tab:AddButton({
-            Title = "Load Config",
-            Description = "Load your saved settings",
-            Callback = function()
-                SaveManager:LoadSettings()
+            {Title = "Load Config", Callback = function()
+                self:LoadSettings()
                 self.Library:Notify({
                     Title = "Config Loaded",
                     Content = "Your settings have been loaded!",
                     Duration = 3
                 })
-            end
-        })
+            end},
 
-        -- Reset to Defaults Button
-        tab:AddButton({
-            Title = "Reset to Defaults",
-            Description = "Reset all settings to default",
-            Callback = function()
-                SaveManager.Settings = {}
-                SaveManager:SaveSettings()
+            {Title = "Reset to Defaults", Callback = function()
+                for key, element in next, self.OptionsRegistry do
+                    element:SetValue(element.Default)
+                end
+                self:SaveSettings()
                 self.Library:Notify({
                     Title = "Reset",
-                    Content = "Settings have been reset!",
+                    Content = "Settings reset to defaults!",
                     Duration = 3
                 })
-            end
-        })
+            end}
+        }
+
+        for _, btn in next, buttons do
+            tab:AddButton(btn)
+        end
     end
 
+    -- Auto-load config at startup
     function SaveManager:LoadAutoloadConfig()
-        SaveManager:LoadSettings()
+        self:LoadSettings()
     end
 end
 
