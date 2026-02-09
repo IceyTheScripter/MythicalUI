@@ -1,13 +1,18 @@
--- MYTHICAL UI LIBRARY
--- A Fluent-inspired UI with Mythical Matrix aesthetics
--- Created with love and chaos 💜✨
+-- MYTHICAL UI - COMPLETE ALL-IN-ONE LIBRARY
+-- Includes: Themes, Config Saving, All Elements, Settings Tab
+-- No external dependencies needed!
 
-local MythicalUI = {}
+local httpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
+
+local MythicalUI = {
+	Version = "1.0.0",
+	Options = {},
+}
 
 -- THEME SYSTEM
 local Themes = {
@@ -109,17 +114,146 @@ local Themes = {
 	}
 }
 
-local currentTheme = Themes[1]
+local currentTheme = Themes[math.random(1, #Themes)]
+print("🎨 Mythical UI Theme: " .. currentTheme.name)
 
--- SOUND IDS (using ones from the splash screen)
+-- SOUND IDS
 local Sounds = {
 	click = "rbxassetid://6895079853",
 	hover = "rbxassetid://6895079853",
 	whoosh = "rbxassetid://1177785010",
 	toggle = "rbxassetid://6895079853",
-	type = "rbxassetid://6895079853",
 	open = "rbxassetid://6869244313"
 }
+
+-- CONFIG SYSTEM (BUILT-IN)
+local ConfigSystem = {
+	Folder = "MythicalSettings",
+	Ignore = {},
+}
+
+function ConfigSystem:BuildFolderTree()
+	local paths = {self.Folder, self.Folder .. "/settings"}
+	for i = 1, #paths do
+		if not isfolder(paths[i]) then
+			makefolder(paths[i])
+		end
+	end
+end
+
+function ConfigSystem:Save(name)
+	if not name or name == "" then
+		return false, "no config name"
+	end
+	
+	local data = {objects = {}}
+	
+	for idx, option in pairs(MythicalUI.Options) do
+		if self.Ignore[idx] then continue end
+		
+		local saveData = nil
+		if option.Type == "Toggle" then
+			saveData = {type = "Toggle", idx = idx, value = option.Value}
+		elseif option.Type == "Slider" then
+			saveData = {type = "Slider", idx = idx, value = option.Value}
+		elseif option.Type == "Dropdown" then
+			saveData = {type = "Dropdown", idx = idx, value = option.Value}
+		elseif option.Type == "Input" then
+			saveData = {type = "Input", idx = idx, text = option.Value}
+		elseif option.Type == "Colorpicker" then
+			local r = math.floor(option.Value.R * 255)
+			local g = math.floor(option.Value.G * 255)
+			local b = math.floor(option.Value.B * 255)
+			saveData = {type = "Colorpicker", idx = idx, r = r, g = g, b = b}
+		elseif option.Type == "Keybind" then
+			saveData = {type = "Keybind", idx = idx, key = option.Value}
+		end
+		
+		if saveData then
+			table.insert(data.objects, saveData)
+		end
+	end
+	
+	local success, encoded = pcall(httpService.JSONEncode, httpService, data)
+	if not success then
+		return false, "failed to encode"
+	end
+	
+	writefile(self.Folder .. "/settings/" .. name .. ".json", encoded)
+	return true
+end
+
+function ConfigSystem:Load(name)
+	if not name or name == "" then
+		return false, "no config name"
+	end
+	
+	local file = self.Folder .. "/settings/" .. name .. ".json"
+	if not isfile(file) then
+		return false, "file not found"
+	end
+	
+	local success, decoded = pcall(httpService.JSONDecode, httpService, readfile(file))
+	if not success then
+		return false, "decode error"
+	end
+	
+	for _, option in pairs(decoded.objects) do
+		if MythicalUI.Options[option.idx] then
+			local opt = MythicalUI.Options[option.idx]
+			
+			if option.type == "Toggle" and opt.SetValue then
+				opt:SetValue(option.value)
+			elseif option.type == "Slider" and opt.SetValue then
+				opt:SetValue(option.value)
+			elseif option.type == "Dropdown" and opt.SetValue then
+				opt:SetValue(option.value)
+			elseif option.type == "Input" then
+				opt.Value = option.text
+			elseif option.type == "Colorpicker" and opt.SetValueRGB then
+				opt:SetValueRGB(Color3.fromRGB(option.r, option.g, option.b))
+			elseif option.type == "Keybind" and opt.SetValue then
+				opt:SetValue(option.key)
+			end
+		end
+	end
+	
+	return true
+end
+
+function ConfigSystem:RefreshList()
+	local list = listfiles(self.Folder .. "/settings")
+	local out = {}
+	
+	for i = 1, #list do
+		local file = list[i]
+		if file:sub(-5) == ".json" then
+			local name = file:match("([^/\\]+)%.json$")
+			if name and name ~= "options" and name ~= "autoload" then
+				table.insert(out, name)
+			end
+		end
+	end
+	
+	return out
+end
+
+function ConfigSystem:LoadAutoload()
+	if isfile(self.Folder .. "/settings/autoload.txt") then
+		local name = readfile(self.Folder .. "/settings/autoload.txt")
+		local success, err = self:Load(name)
+		
+		if success then
+			MythicalUI:Notify({
+				Title = "Mythical UI",
+				Content = "Auto-loaded config: " .. name,
+				Duration = 5
+			})
+		end
+	end
+end
+
+ConfigSystem:BuildFolderTree()
 
 -- Utility Functions
 local function playSound(soundId, volume, pitch)
@@ -134,9 +268,9 @@ end
 
 local function tween(object, properties, duration, style, direction)
 	local tweenInfo = TweenInfo.new(duration or 0.3, style or Enum.EasingStyle.Quad, direction or Enum.EasingDirection.Out)
-	local tween = TweenService:Create(object, tweenInfo, properties)
-	tween:Play()
-	return tween
+	local tw = TweenService:Create(object, tweenInfo, properties)
+	tw:Play()
+	return tw
 end
 
 local function createParticle(parent, theme)
@@ -154,7 +288,6 @@ local function createParticle(parent, theme)
 	corner.CornerRadius = UDim.new(1, 0)
 	corner.Parent = particle
 	
-	-- Animate particle
 	task.spawn(function()
 		while particle.Parent do
 			local randomX = math.random()
@@ -175,18 +308,21 @@ end
 
 -- CREATE WINDOW
 function MythicalUI:CreateWindow(config)
-	local Window = {}
-	Window.Tabs = {}
-	Window.CurrentTab = nil
-	Window.Options = {} -- Add Options table for SaveManager
+	local Window = {
+		Tabs = {},
+		CurrentTab = nil,
+		_themeObjects = {}, -- For theme updating
+	}
 	
-	-- Get screen size for responsive design
+	-- Store reference for config system
+	MythicalUI.Window = Window
+	
+	-- Create ScreenGui
 	local screenGui = Instance.new("ScreenGui")
 	screenGui.Name = "MythicalUI"
 	screenGui.ResetOnSpawn = false
 	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	
-	-- Protection
 	if gethui then
 		screenGui.Parent = gethui()
 	elseif syn and syn.protect_gui then
@@ -196,19 +332,21 @@ function MythicalUI:CreateWindow(config)
 		screenGui.Parent = CoreGui
 	end
 	
+	Window.ScreenGui = screenGui
+	
 	-- Main Frame (responsive)
 	local mainFrame = Instance.new("Frame")
 	mainFrame.Name = "MainFrame"
 	mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 	mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-	mainFrame.Size = UDim2.fromScale(0.45, 0.65) -- Responsive sizing
-	mainFrame.SizeConstraint = Enum.SizeConstraint.RelativeXX
+	mainFrame.Size = UDim2.fromScale(0.45, 0.65)
 	mainFrame.BackgroundColor3 = currentTheme.background
 	mainFrame.BorderSizePixel = 0
 	mainFrame.ClipsDescendants = true
 	mainFrame.Parent = screenGui
 	
-	-- Minimum size constraint
+	Window.MainFrame = mainFrame
+	
 	local sizeConstraint = Instance.new("UISizeConstraint")
 	sizeConstraint.MinSize = Vector2.new(580, 460)
 	sizeConstraint.MaxSize = Vector2.new(900, 700)
@@ -218,14 +356,15 @@ function MythicalUI:CreateWindow(config)
 	mainCorner.CornerRadius = UDim.new(0, 12)
 	mainCorner.Parent = mainFrame
 	
-	-- Stroke
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = currentTheme.primary
 	stroke.Thickness = 2
 	stroke.Transparency = 0.5
 	stroke.Parent = mainFrame
 	
-	-- Add particles to background
+	table.insert(Window._themeObjects, {obj = stroke, prop = "Color", colorKey = "primary"})
+	
+	-- Particles
 	for i = 1, 15 do
 		createParticle(mainFrame, currentTheme)
 	end
@@ -238,6 +377,8 @@ function MythicalUI:CreateWindow(config)
 	topBar.BorderSizePixel = 0
 	topBar.ZIndex = 5
 	topBar.Parent = mainFrame
+	
+	table.insert(Window._themeObjects, {obj = topBar, prop = "BackgroundColor3", colorKey = "topbar"})
 	
 	local topCorner = Instance.new("UICorner")
 	topCorner.CornerRadius = UDim.new(0, 12)
@@ -257,9 +398,10 @@ function MythicalUI:CreateWindow(config)
 	title.ZIndex = 6
 	title.Parent = topBar
 	
+	table.insert(Window._themeObjects, {obj = title, prop = "TextColor3", colorKey = "text"})
+	
 	-- Subtitle
 	local subtitle = Instance.new("TextLabel")
-	subtitle.Name = "Subtitle"
 	subtitle.Size = UDim2.new(0, 200, 1, 0)
 	subtitle.Position = UDim2.new(0, 120, 0, 0)
 	subtitle.BackgroundTransparency = 1
@@ -271,9 +413,10 @@ function MythicalUI:CreateWindow(config)
 	subtitle.ZIndex = 6
 	subtitle.Parent = topBar
 	
+	table.insert(Window._themeObjects, {obj = subtitle, prop = "TextColor3", colorKey = "textDim"})
+	
 	-- Close Button
 	local closeBtn = Instance.new("TextButton")
-	closeBtn.Name = "CloseButton"
 	closeBtn.Size = UDim2.new(0, 35, 0, 35)
 	closeBtn.Position = UDim2.new(1, -40, 0.5, 0)
 	closeBtn.AnchorPoint = Vector2.new(0, 0.5)
@@ -285,6 +428,9 @@ function MythicalUI:CreateWindow(config)
 	closeBtn.Font = Enum.Font.GothamBold
 	closeBtn.ZIndex = 6
 	closeBtn.Parent = topBar
+	
+	table.insert(Window._themeObjects, {obj = closeBtn, prop = "BackgroundColor3", colorKey = "element"})
+	table.insert(Window._themeObjects, {obj = closeBtn, prop = "TextColor3", colorKey = "text"})
 	
 	local closeBtnCorner = Instance.new("UICorner")
 	closeBtnCorner.CornerRadius = UDim.new(0, 8)
@@ -308,7 +454,6 @@ function MythicalUI:CreateWindow(config)
 	
 	-- Minimize Button
 	local minimizeBtn = Instance.new("TextButton")
-	minimizeBtn.Name = "MinimizeButton"
 	minimizeBtn.Size = UDim2.new(0, 35, 0, 35)
 	minimizeBtn.Position = UDim2.new(1, -80, 0.5, 0)
 	minimizeBtn.AnchorPoint = Vector2.new(0, 0.5)
@@ -321,24 +466,28 @@ function MythicalUI:CreateWindow(config)
 	minimizeBtn.ZIndex = 6
 	minimizeBtn.Parent = topBar
 	
+	table.insert(Window._themeObjects, {obj = minimizeBtn, prop = "BackgroundColor3", colorKey = "element"})
+	table.insert(Window._themeObjects, {obj = minimizeBtn, prop = "TextColor3", colorKey = "text"})
+	
 	local minimizeBtnCorner = Instance.new("UICorner")
 	minimizeBtnCorner.CornerRadius = UDim.new(0, 8)
 	minimizeBtnCorner.Parent = minimizeBtn
 	
 	local isMinimized = false
+	Window.isMinimized = false
+	
 	minimizeBtn.MouseButton1Click:Connect(function()
 		playSound(Sounds.whoosh, 0.4, isMinimized and 1.2 or 0.8)
 		isMinimized = not isMinimized
+		Window.isMinimized = isMinimized
 		
 		if isMinimized then
-			-- Hide everything except topbar
-			tabContainer.Visible = false
-			contentContainer.Visible = false
+			Window.TabContainer.Visible = false
+			Window.ContentContainer.Visible = false
 			tween(mainFrame, {Size = UDim2.new(mainFrame.Size.X.Scale, mainFrame.Size.X.Offset, 0, 45)}, 0.3, Enum.EasingStyle.Quad)
 		else
-			-- Show everything
-			tabContainer.Visible = true
-			contentContainer.Visible = true
+			Window.TabContainer.Visible = true
+			Window.ContentContainer.Visible = true
 			tween(mainFrame, {Size = UDim2.fromScale(0.45, 0.65)}, 0.3, Enum.EasingStyle.Quad)
 		end
 	end)
@@ -361,6 +510,8 @@ function MythicalUI:CreateWindow(config)
 	tabContainer.ZIndex = 3
 	tabContainer.Parent = mainFrame
 	
+	Window.TabContainer = tabContainer
+	
 	local tabList = Instance.new("UIListLayout")
 	tabList.SortOrder = Enum.SortOrder.LayoutOrder
 	tabList.Padding = UDim.new(0, 5)
@@ -375,6 +526,8 @@ function MythicalUI:CreateWindow(config)
 	contentContainer.ClipsDescendants = true
 	contentContainer.ZIndex = 3
 	contentContainer.Parent = mainFrame
+	
+	Window.ContentContainer = contentContainer
 	
 	-- Dragging
 	local dragging, dragInput, dragStart, startPos
@@ -405,31 +558,53 @@ function MythicalUI:CreateWindow(config)
 			mainFrame.Position = UDim2.new(
 				startPos.X.Scale,
 				startPos.X.Offset + delta.X,
-				startPos.X.Scale,
-				startPos.X.Offset + delta.Y
+				startPos.Y.Scale,
+				startPos.Y.Offset + delta.Y
 			)
 		end
 	end)
 	
+	-- Theme Change Function
+	function Window:SetTheme(themeName)
+		for _, theme in ipairs(Themes) do
+			if theme.name == themeName then
+				currentTheme = theme
+				
+				-- Update all theme objects
+				for _, themeObj in ipairs(Window._themeObjects) do
+					themeObj.obj[themeObj.prop] = currentTheme[themeObj.colorKey]
+				end
+				
+				playSound(Sounds.whoosh, 0.5, 1)
+				print("🎨 Theme changed to: " .. themeName)
+				return
+			end
+		end
+	end
+	
 	-- ADD TAB FUNCTION
 	function Window:AddTab(tabConfig)
-		local Tab = {}
-		Tab.Elements = {}
-		Tab.Name = tabConfig.Title or "Tab"
+		local Tab = {
+			Elements = {},
+			Name = tabConfig.Title or "Tab",
+		}
 		
 		-- Tab Button
 		local tabButton = Instance.new("TextButton")
 		tabButton.Name = "TabButton_" .. Tab.Name
-		tabButton.Size = UDim2.new(1, 0, 0, 45) -- Increased from 40 to 45
+		tabButton.Size = UDim2.new(1, 0, 0, 45)
 		tabButton.BackgroundColor3 = currentTheme.element
 		tabButton.BorderSizePixel = 0
 		tabButton.Text = "  " .. Tab.Name
 		tabButton.TextColor3 = currentTheme.textDim
-		tabButton.TextSize = 16 -- Increased from 15 to 16
+		tabButton.TextSize = 16
 		tabButton.Font = Enum.Font.GothamSemibold
 		tabButton.TextXAlignment = Enum.TextXAlignment.Left
 		tabButton.ZIndex = 4
 		tabButton.Parent = tabContainer
+		
+		table.insert(Window._themeObjects, {obj = tabButton, prop = "BackgroundColor3", colorKey = "element"})
+		table.insert(Window._themeObjects, {obj = tabButton, prop = "TextColor3", colorKey = "textDim"})
 		
 		local tabCorner = Instance.new("UICorner")
 		tabCorner.CornerRadius = UDim.new(0, 8)
@@ -449,6 +624,8 @@ function MythicalUI:CreateWindow(config)
 		tabContent.ZIndex = 4
 		tabContent.Parent = contentContainer
 		
+		table.insert(Window._themeObjects, {obj = tabContent, prop = "ScrollBarImageColor3", colorKey = "primary"})
+		
 		local contentList = Instance.new("UIListLayout")
 		contentList.SortOrder = Enum.SortOrder.LayoutOrder
 		contentList.Padding = UDim.new(0, 8)
@@ -461,7 +638,6 @@ function MythicalUI:CreateWindow(config)
 		contentPadding.PaddingBottom = UDim.new(0, 5)
 		contentPadding.Parent = tabContent
 		
-		-- Auto resize canvas
 		contentList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 			tabContent.CanvasSize = UDim2.new(0, 0, 0, contentList.AbsoluteContentSize.Y + 10)
 		end)
@@ -491,36 +667,17 @@ function MythicalUI:CreateWindow(config)
 			Tab = Tab
 		}
 		
-		-- SELECT TAB FUNCTION
-		function Window:SelectTab(tabName)
-			for name, tabData in pairs(Window.Tabs) do
-				if name == tabName then
-					tween(tabData.Button, {
-						BackgroundColor3 = currentTheme.primary,
-						TextColor3 = currentTheme.text
-					}, 0.3)
-					tabData.Content.Visible = true
-					Window.CurrentTab = name
-				else
-					tween(tabData.Button, {
-						BackgroundColor3 = currentTheme.element,
-						TextColor3 = currentTheme.textDim
-					}, 0.3)
-					tabData.Content.Visible = false
-				end
-			end
-		end
-		
 		-- ADD BUTTON
 		function Tab:AddButton(buttonConfig)
 			local button = Instance.new("TextButton")
-			button.Name = "Button"
 			button.Size = UDim2.new(1, 0, 0, 40)
 			button.BackgroundColor3 = currentTheme.element
 			button.BorderSizePixel = 0
 			button.Text = ""
 			button.ZIndex = 5
 			button.Parent = tabContent
+			
+			table.insert(Window._themeObjects, {obj = button, prop = "BackgroundColor3", colorKey = "element"})
 			
 			local buttonCorner = Instance.new("UICorner")
 			buttonCorner.CornerRadius = UDim.new(0, 8)
@@ -531,6 +688,8 @@ function MythicalUI:CreateWindow(config)
 			buttonStroke.Thickness = 1
 			buttonStroke.Transparency = 0.8
 			buttonStroke.Parent = button
+			
+			table.insert(Window._themeObjects, {obj = buttonStroke, prop = "Color", colorKey = "primary"})
 			
 			local buttonTitle = Instance.new("TextLabel")
 			buttonTitle.Size = UDim2.new(1, -20, 0, 20)
@@ -544,6 +703,8 @@ function MythicalUI:CreateWindow(config)
 			buttonTitle.ZIndex = 6
 			buttonTitle.Parent = button
 			
+			table.insert(Window._themeObjects, {obj = buttonTitle, prop = "TextColor3", colorKey = "text"})
+			
 			if buttonConfig.Description then
 				local buttonDesc = Instance.new("TextLabel")
 				buttonDesc.Size = UDim2.new(1, -20, 0, 15)
@@ -556,6 +717,8 @@ function MythicalUI:CreateWindow(config)
 				buttonDesc.TextXAlignment = Enum.TextXAlignment.Left
 				buttonDesc.ZIndex = 6
 				buttonDesc.Parent = button
+				
+				table.insert(Window._themeObjects, {obj = buttonDesc, prop = "TextColor3", colorKey = "textDim"})
 			end
 			
 			button.MouseButton1Click:Connect(function()
@@ -585,16 +748,18 @@ function MythicalUI:CreateWindow(config)
 		function Tab:AddToggle(toggleName, toggleConfig)
 			local Toggle = {
 				Value = toggleConfig.Default or false,
-				Name = toggleName
+				Name = toggleName,
+				Type = "Toggle"
 			}
 			
 			local toggleFrame = Instance.new("Frame")
-			toggleFrame.Name = "Toggle_" .. toggleName
 			toggleFrame.Size = UDim2.new(1, 0, 0, 40)
 			toggleFrame.BackgroundColor3 = currentTheme.element
 			toggleFrame.BorderSizePixel = 0
 			toggleFrame.ZIndex = 5
 			toggleFrame.Parent = tabContent
+			
+			table.insert(Window._themeObjects, {obj = toggleFrame, prop = "BackgroundColor3", colorKey = "element"})
 			
 			local toggleCorner = Instance.new("UICorner")
 			toggleCorner.CornerRadius = UDim.new(0, 8)
@@ -605,6 +770,8 @@ function MythicalUI:CreateWindow(config)
 			toggleStroke.Thickness = 1
 			toggleStroke.Transparency = 0.8
 			toggleStroke.Parent = toggleFrame
+			
+			table.insert(Window._themeObjects, {obj = toggleStroke, prop = "Color", colorKey = "primary"})
 			
 			local toggleTitle = Instance.new("TextLabel")
 			toggleTitle.Size = UDim2.new(1, -60, 1, 0)
@@ -618,8 +785,9 @@ function MythicalUI:CreateWindow(config)
 			toggleTitle.ZIndex = 6
 			toggleTitle.Parent = toggleFrame
 			
+			table.insert(Window._themeObjects, {obj = toggleTitle, prop = "TextColor3", colorKey = "text"})
+			
 			local toggleButton = Instance.new("TextButton")
-			toggleButton.Name = "ToggleButton"
 			toggleButton.Size = UDim2.new(0, 45, 0, 22)
 			toggleButton.Position = UDim2.new(1, -52, 0.5, 0)
 			toggleButton.AnchorPoint = Vector2.new(0, 0.5)
@@ -634,7 +802,6 @@ function MythicalUI:CreateWindow(config)
 			toggleBtnCorner.Parent = toggleButton
 			
 			local toggleIndicator = Instance.new("Frame")
-			toggleIndicator.Name = "Indicator"
 			toggleIndicator.Size = UDim2.new(0, 18, 0, 18)
 			toggleIndicator.Position = UDim2.new(0, 2, 0.5, 0)
 			toggleIndicator.AnchorPoint = Vector2.new(0, 0.5)
@@ -688,17 +855,11 @@ function MythicalUI:CreateWindow(config)
 			end
 			
 			function Toggle:OnChanged(callback)
-				toggleButton.MouseButton1Click:Connect(function()
-					callback(Toggle.Value)
-				end)
+				-- Additional callback support
 			end
 			
 			updateToggle()
-			
-			-- Register in Window.Options
-			Toggle.Type = "Toggle"
-			Window.Options[toggleName] = Toggle
-			
+			MythicalUI.Options[toggleName] = Toggle
 			return Toggle
 		end
 		
@@ -709,16 +870,18 @@ function MythicalUI:CreateWindow(config)
 				Min = sliderConfig.Min or 0,
 				Max = sliderConfig.Max or 100,
 				Rounding = sliderConfig.Rounding or 1,
-				Name = sliderName
+				Name = sliderName,
+				Type = "Slider"
 			}
 			
 			local sliderFrame = Instance.new("Frame")
-			sliderFrame.Name = "Slider_" .. sliderName
 			sliderFrame.Size = UDim2.new(1, 0, 0, 50)
 			sliderFrame.BackgroundColor3 = currentTheme.element
 			sliderFrame.BorderSizePixel = 0
 			sliderFrame.ZIndex = 5
 			sliderFrame.Parent = tabContent
+			
+			table.insert(Window._themeObjects, {obj = sliderFrame, prop = "BackgroundColor3", colorKey = "element"})
 			
 			local sliderCorner = Instance.new("UICorner")
 			sliderCorner.CornerRadius = UDim.new(0, 8)
@@ -729,6 +892,8 @@ function MythicalUI:CreateWindow(config)
 			sliderStroke.Thickness = 1
 			sliderStroke.Transparency = 0.8
 			sliderStroke.Parent = sliderFrame
+			
+			table.insert(Window._themeObjects, {obj = sliderStroke, prop = "Color", colorKey = "primary"})
 			
 			local sliderTitle = Instance.new("TextLabel")
 			sliderTitle.Size = UDim2.new(0.7, 0, 0, 20)
@@ -742,6 +907,8 @@ function MythicalUI:CreateWindow(config)
 			sliderTitle.ZIndex = 6
 			sliderTitle.Parent = sliderFrame
 			
+			table.insert(Window._themeObjects, {obj = sliderTitle, prop = "TextColor3", colorKey = "text"})
+			
 			local sliderValue = Instance.new("TextLabel")
 			sliderValue.Size = UDim2.new(0.3, -10, 0, 20)
 			sliderValue.Position = UDim2.new(0.7, 0, 0, 5)
@@ -754,8 +921,9 @@ function MythicalUI:CreateWindow(config)
 			sliderValue.ZIndex = 6
 			sliderValue.Parent = sliderFrame
 			
+			table.insert(Window._themeObjects, {obj = sliderValue, prop = "TextColor3", colorKey = "primary"})
+			
 			local sliderBar = Instance.new("Frame")
-			sliderBar.Name = "SliderBar"
 			sliderBar.Size = UDim2.new(1, -20, 0, 6)
 			sliderBar.Position = UDim2.new(0, 10, 1, -12)
 			sliderBar.BackgroundColor3 = currentTheme.topbar
@@ -763,17 +931,20 @@ function MythicalUI:CreateWindow(config)
 			sliderBar.ZIndex = 6
 			sliderBar.Parent = sliderFrame
 			
+			table.insert(Window._themeObjects, {obj = sliderBar, prop = "BackgroundColor3", colorKey = "topbar"})
+			
 			local sliderBarCorner = Instance.new("UICorner")
 			sliderBarCorner.CornerRadius = UDim.new(1, 0)
 			sliderBarCorner.Parent = sliderBar
 			
 			local sliderFill = Instance.new("Frame")
-			sliderFill.Name = "SliderFill"
 			sliderFill.Size = UDim2.new(0, 0, 1, 0)
 			sliderFill.BackgroundColor3 = currentTheme.primary
 			sliderFill.BorderSizePixel = 0
 			sliderFill.ZIndex = 7
 			sliderFill.Parent = sliderBar
+			
+			table.insert(Window._themeObjects, {obj = sliderFill, prop = "BackgroundColor3", colorKey = "primary"})
 			
 			local sliderFillCorner = Instance.new("UICorner")
 			sliderFillCorner.CornerRadius = UDim.new(1, 0)
@@ -831,17 +1002,8 @@ function MythicalUI:CreateWindow(config)
 				tween(sliderFill, {Size = UDim2.new(pos, 0, 1, 0)}, 0.3)
 			end
 			
-			function Slider:OnChanged(callback)
-				-- This will be triggered on drag
-			end
-			
-			-- Initial value
 			Slider:SetValue(Slider.Value)
-			
-			-- Register in Window.Options
-			Slider.Type = "Slider"
-			Window.Options[sliderName] = Slider
-			
+			MythicalUI.Options[sliderName] = Slider
 			return Slider
 		end
 		
@@ -851,19 +1013,21 @@ function MythicalUI:CreateWindow(config)
 				Value = dropdownConfig.Default,
 				Multi = dropdownConfig.Multi or false,
 				Values = dropdownConfig.Values or {},
-				Name = dropdownName
+				Name = dropdownName,
+				Type = "Dropdown"
 			}
 			
 			local isOpen = false
 			
 			local dropdownFrame = Instance.new("Frame")
-			dropdownFrame.Name = "Dropdown_" .. dropdownName
 			dropdownFrame.Size = UDim2.new(1, 0, 0, 40)
 			dropdownFrame.BackgroundColor3 = currentTheme.element
 			dropdownFrame.BorderSizePixel = 0
 			dropdownFrame.ZIndex = 5
 			dropdownFrame.ClipsDescendants = false
 			dropdownFrame.Parent = tabContent
+			
+			table.insert(Window._themeObjects, {obj = dropdownFrame, prop = "BackgroundColor3", colorKey = "element"})
 			
 			local dropdownCorner = Instance.new("UICorner")
 			dropdownCorner.CornerRadius = UDim.new(0, 8)
@@ -874,6 +1038,8 @@ function MythicalUI:CreateWindow(config)
 			dropdownStroke.Thickness = 1
 			dropdownStroke.Transparency = 0.8
 			dropdownStroke.Parent = dropdownFrame
+			
+			table.insert(Window._themeObjects, {obj = dropdownStroke, prop = "Color", colorKey = "primary"})
 			
 			local dropdownButton = Instance.new("TextButton")
 			dropdownButton.Size = UDim2.new(1, 0, 0, 40)
@@ -894,6 +1060,8 @@ function MythicalUI:CreateWindow(config)
 			dropdownTitle.ZIndex = 7
 			dropdownTitle.Parent = dropdownButton
 			
+			table.insert(Window._themeObjects, {obj = dropdownTitle, prop = "TextColor3", colorKey = "text"})
+			
 			local dropdownArrow = Instance.new("TextLabel")
 			dropdownArrow.Size = UDim2.new(0, 20, 1, 0)
 			dropdownArrow.Position = UDim2.new(1, -30, 0, 0)
@@ -905,8 +1073,9 @@ function MythicalUI:CreateWindow(config)
 			dropdownArrow.ZIndex = 7
 			dropdownArrow.Parent = dropdownButton
 			
+			table.insert(Window._themeObjects, {obj = dropdownArrow, prop = "TextColor3", colorKey = "primary"})
+			
 			local dropdownList = Instance.new("ScrollingFrame")
-			dropdownList.Name = "DropdownList"
 			dropdownList.Size = UDim2.new(1, 0, 0, 0)
 			dropdownList.Position = UDim2.new(0, 0, 0, 45)
 			dropdownList.BackgroundColor3 = currentTheme.topbar
@@ -919,6 +1088,9 @@ function MythicalUI:CreateWindow(config)
 			dropdownList.ClipsDescendants = true
 			dropdownList.Parent = dropdownFrame
 			
+			table.insert(Window._themeObjects, {obj = dropdownList, prop = "BackgroundColor3", colorKey = "topbar"})
+			table.insert(Window._themeObjects, {obj = dropdownList, prop = "ScrollBarImageColor3", colorKey = "primary"})
+			
 			local dropdownListCorner = Instance.new("UICorner")
 			dropdownListCorner.CornerRadius = UDim.new(0, 8)
 			dropdownListCorner.Parent = dropdownList
@@ -928,6 +1100,8 @@ function MythicalUI:CreateWindow(config)
 			dropdownListStroke.Thickness = 1
 			dropdownListStroke.Transparency = 0.5
 			dropdownListStroke.Parent = dropdownList
+			
+			table.insert(Window._themeObjects, {obj = dropdownListStroke, prop = "Color", colorKey = "primary"})
 			
 			local listLayout = Instance.new("UIListLayout")
 			listLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -941,52 +1115,65 @@ function MythicalUI:CreateWindow(config)
 			listPadding.PaddingRight = UDim.new(0, 5)
 			listPadding.Parent = dropdownList
 			
-			-- Create options
-			for _, value in ipairs(Dropdown.Values) do
-				local optionButton = Instance.new("TextButton")
-				optionButton.Name = "Option_" .. value
-				optionButton.Size = UDim2.new(1, -10, 0, 30)
-				optionButton.BackgroundColor3 = currentTheme.element
-				optionButton.BorderSizePixel = 0
-				optionButton.Text = "  " .. value
-				optionButton.TextColor3 = currentTheme.text
-				optionButton.TextSize = 13
-				optionButton.Font = Enum.Font.Gotham
-				optionButton.TextXAlignment = Enum.TextXAlignment.Left
-				optionButton.ZIndex = 11
-				optionButton.Parent = dropdownList
-				
-				local optionCorner = Instance.new("UICorner")
-				optionCorner.CornerRadius = UDim.new(0, 6)
-				optionCorner.Parent = optionButton
-				
-				optionButton.MouseButton1Click:Connect(function()
-					playSound(Sounds.click, 0.5, 1)
-					Dropdown.Value = value
-					dropdownTitle.Text = value
-					
-					if not Dropdown.Multi then
-						isOpen = false
-						dropdownList.Visible = false
-						tween(dropdownFrame, {Size = UDim2.new(1, 0, 0, 40)}, 0.3)
-						tween(dropdownArrow, {Rotation = 0}, 0.3)
+			local function createOptions()
+				-- Clear existing options
+				for _, child in ipairs(dropdownList:GetChildren()) do
+					if child:IsA("TextButton") then
+						child:Destroy()
 					end
+				end
+				
+				-- Create new options
+				for _, value in ipairs(Dropdown.Values) do
+					local optionButton = Instance.new("TextButton")
+					optionButton.Name = "Option_" .. value
+					optionButton.Size = UDim2.new(1, -10, 0, 30)
+					optionButton.BackgroundColor3 = currentTheme.element
+					optionButton.BorderSizePixel = 0
+					optionButton.Text = "  " .. value
+					optionButton.TextColor3 = currentTheme.text
+					optionButton.TextSize = 13
+					optionButton.Font = Enum.Font.Gotham
+					optionButton.TextXAlignment = Enum.TextXAlignment.Left
+					optionButton.ZIndex = 11
+					optionButton.Parent = dropdownList
 					
-					if dropdownConfig.Callback then
-						dropdownConfig.Callback(value)
-					end
-				end)
-				
-				optionButton.MouseEnter:Connect(function()
-					tween(optionButton, {BackgroundColor3 = currentTheme.primary}, 0.2)
-				end)
-				
-				optionButton.MouseLeave:Connect(function()
-					tween(optionButton, {BackgroundColor3 = currentTheme.element}, 0.2)
-				end)
+					table.insert(Window._themeObjects, {obj = optionButton, prop = "BackgroundColor3", colorKey = "element"})
+					table.insert(Window._themeObjects, {obj = optionButton, prop = "TextColor3", colorKey = "text"})
+					
+					local optionCorner = Instance.new("UICorner")
+					optionCorner.CornerRadius = UDim.new(0, 6)
+					optionCorner.Parent = optionButton
+					
+					optionButton.MouseButton1Click:Connect(function()
+						playSound(Sounds.click, 0.5, 1)
+						Dropdown.Value = value
+						dropdownTitle.Text = value
+						
+						if not Dropdown.Multi then
+							isOpen = false
+							dropdownList.Visible = false
+							tween(dropdownFrame, {Size = UDim2.new(1, 0, 0, 40)}, 0.3)
+							tween(dropdownArrow, {Rotation = 0}, 0.3)
+						end
+						
+						if dropdownConfig.Callback then
+							dropdownConfig.Callback(value)
+						end
+					end)
+					
+					optionButton.MouseEnter:Connect(function()
+						tween(optionButton, {BackgroundColor3 = currentTheme.primary}, 0.2)
+					end)
+					
+					optionButton.MouseLeave:Connect(function()
+						tween(optionButton, {BackgroundColor3 = currentTheme.element}, 0.2)
+					end)
+				end
 			end
 			
-			-- Auto resize
+			createOptions()
+			
 			listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 				dropdownList.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
 			end)
@@ -1024,82 +1211,35 @@ function MythicalUI:CreateWindow(config)
 				dropdownTitle.Text = value
 			end
 			
-			function Dropdown:OnChanged(callback)
-				-- Callback handled in option click
+			function Dropdown:SetValues(values)
+				Dropdown.Values = values
+				createOptions()
 			end
 			
 			if Dropdown.Value then
 				dropdownTitle.Text = Dropdown.Value
 			end
 			
-			-- Register in Window.Options
-			Dropdown.Type = "Dropdown"
-			Window.Options[dropdownName] = Dropdown
-			
+			MythicalUI.Options[dropdownName] = Dropdown
 			return Dropdown
-		end
-		
-		-- ADD PARAGRAPH
-		function Tab:AddParagraph(paragraphConfig)
-			local paragraphFrame = Instance.new("Frame")
-			paragraphFrame.Name = "Paragraph"
-			paragraphFrame.Size = UDim2.new(1, 0, 0, 60)
-			paragraphFrame.BackgroundColor3 = currentTheme.element
-			paragraphFrame.BorderSizePixel = 0
-			paragraphFrame.ZIndex = 5
-			paragraphFrame.Parent = tabContent
-			
-			local paragraphCorner = Instance.new("UICorner")
-			paragraphCorner.CornerRadius = UDim.new(0, 8)
-			paragraphCorner.Parent = paragraphFrame
-			
-			local paragraphTitle = Instance.new("TextLabel")
-			paragraphTitle.Size = UDim2.new(1, -20, 0, 20)
-			paragraphTitle.Position = UDim2.new(0, 10, 0, 8)
-			paragraphTitle.BackgroundTransparency = 1
-			paragraphTitle.Text = paragraphConfig.Title or "Paragraph"
-			paragraphTitle.TextColor3 = currentTheme.text
-			paragraphTitle.TextSize = 15
-			paragraphTitle.Font = Enum.Font.GothamBold
-			paragraphTitle.TextXAlignment = Enum.TextXAlignment.Left
-			paragraphTitle.ZIndex = 6
-			paragraphTitle.Parent = paragraphFrame
-			
-			local paragraphContent = Instance.new("TextLabel")
-			paragraphContent.Size = UDim2.new(1, -20, 1, -35)
-			paragraphContent.Position = UDim2.new(0, 10, 0, 28)
-			paragraphContent.BackgroundTransparency = 1
-			paragraphContent.Text = paragraphConfig.Content or ""
-			paragraphContent.TextColor3 = currentTheme.textDim
-			paragraphContent.TextSize = 13
-			paragraphContent.Font = Enum.Font.Gotham
-			paragraphContent.TextXAlignment = Enum.TextXAlignment.Left
-			paragraphContent.TextYAlignment = Enum.TextYAlignment.Top
-			paragraphContent.TextWrapped = true
-			paragraphContent.ZIndex = 6
-			paragraphContent.Parent = paragraphFrame
-			
-			-- Auto height
-			local lines = select(2, paragraphConfig.Content:gsub('\n', '\n')) + 1
-			paragraphFrame.Size = UDim2.new(1, 0, 0, 40 + (lines * 18))
-			
-			return paragraphFrame
 		end
 		
 		-- ADD INPUT
 		function Tab:AddInput(inputName, inputConfig)
 			local Input = {
 				Value = inputConfig.Default or "",
-				Name = inputName
+				Name = inputName,
+				Type = "Input"
 			}
 			
 			local inputFrame = Instance.new("Frame")
-			inputFrame.Name = "Input_" .. inputName
 			inputFrame.Size = UDim2.new(1, 0, 0, 45)
 			inputFrame.BackgroundColor3 = currentTheme.element
 			inputFrame.BorderSizePixel = 0
 			inputFrame.ZIndex = 5
 			inputFrame.Parent = tabContent
+			
+			table.insert(Window._themeObjects, {obj = inputFrame, prop = "BackgroundColor3", colorKey = "element"})
 			
 			local inputCorner = Instance.new("UICorner")
 			inputCorner.CornerRadius = UDim.new(0, 8)
@@ -1110,6 +1250,8 @@ function MythicalUI:CreateWindow(config)
 			inputStroke.Thickness = 1
 			inputStroke.Transparency = 0.8
 			inputStroke.Parent = inputFrame
+			
+			table.insert(Window._themeObjects, {obj = inputStroke, prop = "Color", colorKey = "primary"})
 			
 			local inputTitle = Instance.new("TextLabel")
 			inputTitle.Size = UDim2.new(1, -20, 0, 15)
@@ -1122,6 +1264,8 @@ function MythicalUI:CreateWindow(config)
 			inputTitle.TextXAlignment = Enum.TextXAlignment.Left
 			inputTitle.ZIndex = 6
 			inputTitle.Parent = inputFrame
+			
+			table.insert(Window._themeObjects, {obj = inputTitle, prop = "TextColor3", colorKey = "text"})
 			
 			local inputBox = Instance.new("TextBox")
 			inputBox.Size = UDim2.new(1, -20, 0, 22)
@@ -1138,6 +1282,10 @@ function MythicalUI:CreateWindow(config)
 			inputBox.ClearTextOnFocus = false
 			inputBox.ZIndex = 6
 			inputBox.Parent = inputFrame
+			
+			table.insert(Window._themeObjects, {obj = inputBox, prop = "BackgroundColor3", colorKey = "topbar"})
+			table.insert(Window._themeObjects, {obj = inputBox, prop = "TextColor3", colorKey = "text"})
+			table.insert(Window._themeObjects, {obj = inputBox, prop = "PlaceholderColor3", colorKey = "textDim"})
 			
 			local inputBoxCorner = Instance.new("UICorner")
 			inputBoxCorner.CornerRadius = UDim.new(0, 6)
@@ -1162,14 +1310,9 @@ function MythicalUI:CreateWindow(config)
 				end
 			end)
 			
-			inputBox:GetPropertyChangedSignal("Text"):Connect(function()
-				if not inputConfig.Numeric then return end
-				inputBox.Text = inputBox.Text:gsub("[^%d]", "")
-			end)
-			
-			function Input:OnChanged(callback)
+			if inputConfig.Numeric then
 				inputBox:GetPropertyChangedSignal("Text"):Connect(function()
-					callback(inputBox.Text)
+					inputBox.Text = inputBox.Text:gsub("[^%d]", "")
 				end)
 			end
 			
@@ -1177,10 +1320,7 @@ function MythicalUI:CreateWindow(config)
 				playSound(Sounds.hover, 0.3, 1.1)
 			end)
 			
-			-- Register in Window.Options
-			Input.Type = "Input"
-			Window.Options[inputName] = Input
-			
+			MythicalUI.Options[inputName] = Input
 			return Input
 		end
 		
@@ -1188,16 +1328,18 @@ function MythicalUI:CreateWindow(config)
 		function Tab:AddColorpicker(colorpickerName, colorpickerConfig)
 			local Colorpicker = {
 				Value = colorpickerConfig.Default or Color3.fromRGB(255, 255, 255),
-				Name = colorpickerName
+				Name = colorpickerName,
+				Type = "Colorpicker"
 			}
 			
 			local colorFrame = Instance.new("Frame")
-			colorFrame.Name = "Colorpicker_" .. colorpickerName
 			colorFrame.Size = UDim2.new(1, 0, 0, 40)
 			colorFrame.BackgroundColor3 = currentTheme.element
 			colorFrame.BorderSizePixel = 0
 			colorFrame.ZIndex = 5
 			colorFrame.Parent = tabContent
+			
+			table.insert(Window._themeObjects, {obj = colorFrame, prop = "BackgroundColor3", colorKey = "element"})
 			
 			local colorCorner = Instance.new("UICorner")
 			colorCorner.CornerRadius = UDim.new(0, 8)
@@ -1208,6 +1350,8 @@ function MythicalUI:CreateWindow(config)
 			colorStroke.Thickness = 1
 			colorStroke.Transparency = 0.8
 			colorStroke.Parent = colorFrame
+			
+			table.insert(Window._themeObjects, {obj = colorStroke, prop = "Color", colorKey = "primary"})
 			
 			local colorTitle = Instance.new("TextLabel")
 			colorTitle.Size = UDim2.new(1, -60, 1, 0)
@@ -1220,6 +1364,8 @@ function MythicalUI:CreateWindow(config)
 			colorTitle.TextXAlignment = Enum.TextXAlignment.Left
 			colorTitle.ZIndex = 6
 			colorTitle.Parent = colorFrame
+			
+			table.insert(Window._themeObjects, {obj = colorTitle, prop = "TextColor3", colorKey = "text"})
 			
 			local colorDisplay = Instance.new("TextButton")
 			colorDisplay.Size = UDim2.new(0, 35, 0, 25)
@@ -1241,9 +1387,11 @@ function MythicalUI:CreateWindow(config)
 			colorDisplayStroke.Transparency = 0.7
 			colorDisplayStroke.Parent = colorDisplay
 			
+			table.insert(Window._themeObjects, {obj = colorDisplayStroke, prop = "Color", colorKey = "text"})
+			
 			colorDisplay.MouseButton1Click:Connect(function()
 				playSound(Sounds.click, 0.5, 1)
-				-- Simple color cycle for demo (in real impl you'd add a color picker UI)
+				-- Simple color cycle for demo
 				local r = math.random(0, 255)
 				local g = math.random(0, 255)
 				local b = math.random(0, 255)
@@ -1269,31 +1417,342 @@ function MythicalUI:CreateWindow(config)
 				colorDisplay.BackgroundColor3 = color
 			end
 			
-			function Colorpicker:OnChanged(callback)
-				-- Callback handled in click
+			MythicalUI.Options[colorpickerName] = Colorpicker
+			return Colorpicker
+		end
+		
+		-- ADD KEYBIND
+		function Tab:AddKeybind(keybindName, keybindConfig)
+			local Keybind = {
+				Value = keybindConfig.Default or "None",
+				Name = keybindName,
+				Type = "Keybind",
+				Callback = keybindConfig.Callback
+			}
+			
+			local keybindFrame = Instance.new("Frame")
+			keybindFrame.Size = UDim2.new(1, 0, 0, 40)
+			keybindFrame.BackgroundColor3 = currentTheme.element
+			keybindFrame.BorderSizePixel = 0
+			keybindFrame.ZIndex = 5
+			keybindFrame.Parent = tabContent
+			
+			table.insert(Window._themeObjects, {obj = keybindFrame, prop = "BackgroundColor3", colorKey = "element"})
+			
+			local keybindCorner = Instance.new("UICorner")
+			keybindCorner.CornerRadius = UDim.new(0, 8)
+			keybindCorner.Parent = keybindFrame
+			
+			local keybindStroke = Instance.new("UIStroke")
+			keybindStroke.Color = currentTheme.primary
+			keybindStroke.Thickness = 1
+			keybindStroke.Transparency = 0.8
+			keybindStroke.Parent = keybindFrame
+			
+			table.insert(Window._themeObjects, {obj = keybindStroke, prop = "Color", colorKey = "primary"})
+			
+			local keybindTitle = Instance.new("TextLabel")
+			keybindTitle.Size = UDim2.new(1, -100, 1, 0)
+			keybindTitle.Position = UDim2.new(0, 10, 0, 0)
+			keybindTitle.BackgroundTransparency = 1
+			keybindTitle.Text = keybindConfig.Title or keybindName
+			keybindTitle.TextColor3 = currentTheme.text
+			keybindTitle.TextSize = 14
+			keybindTitle.Font = Enum.Font.GothamSemibold
+			keybindTitle.TextXAlignment = Enum.TextXAlignment.Left
+			keybindTitle.ZIndex = 6
+			keybindTitle.Parent = keybindFrame
+			
+			table.insert(Window._themeObjects, {obj = keybindTitle, prop = "TextColor3", colorKey = "text"})
+			
+			local keybindButton = Instance.new("TextButton")
+			keybindButton.Size = UDim2.new(0, 80, 0, 28)
+			keybindButton.Position = UDim2.new(1, -87, 0.5, 0)
+			keybindButton.AnchorPoint = Vector2.new(0, 0.5)
+			keybindButton.BackgroundColor3 = currentTheme.topbar
+			keybindButton.BorderSizePixel = 0
+			keybindButton.Text = Keybind.Value
+			keybindButton.TextColor3 = currentTheme.text
+			keybindButton.TextSize = 13
+			keybindButton.Font = Enum.Font.Gotham
+			keybindButton.ZIndex = 6
+			keybindButton.Parent = keybindFrame
+			
+			table.insert(Window._themeObjects, {obj = keybindButton, prop = "BackgroundColor3", colorKey = "topbar"})
+			table.insert(Window._themeObjects, {obj = keybindButton, prop = "TextColor3", colorKey = "text"})
+			
+			local keybindBtnCorner = Instance.new("UICorner")
+			keybindBtnCorner.CornerRadius = UDim.new(0, 6)
+			keybindBtnCorner.Parent = keybindButton
+			
+			local listening = false
+			
+			keybindButton.MouseButton1Click:Connect(function()
+				if not listening then
+					listening = true
+					keybindButton.Text = "..."
+					playSound(Sounds.click, 0.5, 1)
+				end
+			end)
+			
+			UserInputService.InputBegan:Connect(function(input)
+				if listening then
+					if input.KeyCode ~= Enum.KeyCode.Unknown then
+						Keybind.Value = input.KeyCode.Name
+						keybindButton.Text = Keybind.Value
+						listening = false
+						playSound(Sounds.toggle, 0.5, 1.1)
+					end
+				elseif input.KeyCode.Name == Keybind.Value and Keybind.Callback then
+					Keybind.Callback()
+				end
+			end)
+			
+			keybindFrame.MouseEnter:Connect(function()
+				playSound(Sounds.hover, 0.3, 1.1)
+				tween(keybindStroke, {Transparency = 0.3}, 0.2)
+			end)
+			
+			keybindFrame.MouseLeave:Connect(function()
+				tween(keybindStroke, {Transparency = 0.8}, 0.2)
+			end)
+			
+			function Keybind:SetValue(value)
+				Keybind.Value = value
+				keybindButton.Text = value
 			end
 			
-			-- Register in Window.Options
-			Colorpicker.Type = "Colorpicker"
-			Window.Options[colorpickerName] = Colorpicker
+			MythicalUI.Options[keybindName] = Keybind
+			return Keybind
+		end
+		
+		-- ADD PARAGRAPH
+		function Tab:AddParagraph(paragraphConfig)
+			local paragraphFrame = Instance.new("Frame")
+			paragraphFrame.Size = UDim2.new(1, 0, 0, 60)
+			paragraphFrame.BackgroundColor3 = currentTheme.element
+			paragraphFrame.BorderSizePixel = 0
+			paragraphFrame.ZIndex = 5
+			paragraphFrame.Parent = tabContent
 			
-			return Colorpicker
+			table.insert(Window._themeObjects, {obj = paragraphFrame, prop = "BackgroundColor3", colorKey = "element"})
+			
+			local paragraphCorner = Instance.new("UICorner")
+			paragraphCorner.CornerRadius = UDim.new(0, 8)
+			paragraphCorner.Parent = paragraphFrame
+			
+			local paragraphTitle = Instance.new("TextLabel")
+			paragraphTitle.Size = UDim2.new(1, -20, 0, 20)
+			paragraphTitle.Position = UDim2.new(0, 10, 0, 8)
+			paragraphTitle.BackgroundTransparency = 1
+			paragraphTitle.Text = paragraphConfig.Title or "Paragraph"
+			paragraphTitle.TextColor3 = currentTheme.text
+			paragraphTitle.TextSize = 15
+			paragraphTitle.Font = Enum.Font.GothamBold
+			paragraphTitle.TextXAlignment = Enum.TextXAlignment.Left
+			paragraphTitle.ZIndex = 6
+			paragraphTitle.Parent = paragraphFrame
+			
+			table.insert(Window._themeObjects, {obj = paragraphTitle, prop = "TextColor3", colorKey = "text"})
+			
+			local paragraphContent = Instance.new("TextLabel")
+			paragraphContent.Size = UDim2.new(1, -20, 1, -35)
+			paragraphContent.Position = UDim2.new(0, 10, 0, 28)
+			paragraphContent.BackgroundTransparency = 1
+			paragraphContent.Text = paragraphConfig.Content or ""
+			paragraphContent.TextColor3 = currentTheme.textDim
+			paragraphContent.TextSize = 13
+			paragraphContent.Font = Enum.Font.Gotham
+			paragraphContent.TextXAlignment = Enum.TextXAlignment.Left
+			paragraphContent.TextYAlignment = Enum.TextYAlignment.Top
+			paragraphContent.TextWrapped = true
+			paragraphContent.ZIndex = 6
+			paragraphContent.Parent = paragraphFrame
+			
+			table.insert(Window._themeObjects, {obj = paragraphContent, prop = "TextColor3", colorKey = "textDim"})
+			
+			-- Auto height
+			local lines = select(2, paragraphConfig.Content:gsub('\n', '\n')) + 1
+			paragraphFrame.Size = UDim2.new(1, 0, 0, 40 + (lines * 18))
+			
+			return paragraphFrame
 		end
 		
 		return Tab
 	end
+	
+	-- SELECT TAB FUNCTION
+	function Window:SelectTab(tabName)
+		for name, tabData in pairs(Window.Tabs) do
+			if name == tabName then
+				tween(tabData.Button, {
+					BackgroundColor3 = currentTheme.primary,
+					TextColor3 = currentTheme.text
+				}, 0.3)
+				tabData.Content.Visible = true
+				Window.CurrentTab = name
+			else
+				tween(tabData.Button, {
+					BackgroundColor3 = currentTheme.element,
+					TextColor3 = currentTheme.textDim
+				}, 0.3)
+				tabData.Content.Visible = false
+			end
+		end
+	end
+	
+	-- AUTO-CREATE SETTINGS TAB
+	local settingsTab = Window:AddTab({Title = "Settings"})
+	
+	-- Theme Selector
+	settingsTab:AddParagraph({
+		Title = "Interface Settings",
+		Content = "Customize your Mythical UI"
+	})
+	
+	local themeNames = {}
+	for _, theme in ipairs(Themes) do
+		table.insert(themeNames, theme.name)
+	end
+	
+	local themeDropdown = settingsTab:AddDropdown("ThemeSelector", {
+		Title = "Theme",
+		Values = themeNames,
+		Default = currentTheme.name,
+		Callback = function(value)
+			Window:SetTheme(value)
+		end
+	})
+	
+	ConfigSystem.Ignore["ThemeSelector"] = true
+	
+	-- Config Section
+	settingsTab:AddParagraph({
+		Title = "Configuration",
+		Content = "Save and load your settings"
+	})
+	
+	settingsTab:AddInput("ConfigName", {
+		Title = "Config Name",
+		Placeholder = "Enter config name"
+	})
+	
+	local configList = settingsTab:AddDropdown("ConfigList", {
+		Title = "Saved Configs",
+		Values = ConfigSystem:RefreshList()
+	})
+	
+	ConfigSystem.Ignore["ConfigName"] = true
+	ConfigSystem.Ignore["ConfigList"] = true
+	
+	settingsTab:AddButton({
+		Title = "Create Config",
+		Description = "Save current settings",
+		Callback = function()
+			local name = MythicalUI.Options.ConfigName.Value
+			if name == "" then
+				return MythicalUI:Notify({
+					Title = "Error",
+					Content = "Please enter a config name",
+					Duration = 3
+				})
+			end
+			
+			local success, err = ConfigSystem:Save(name)
+			if success then
+				MythicalUI:Notify({
+					Title = "Success",
+					Content = "Config '" .. name .. "' created!",
+					Duration = 3
+				})
+				configList:SetValues(ConfigSystem:RefreshList())
+			else
+				MythicalUI:Notify({
+					Title = "Error",
+					Content = "Failed: " .. err,
+					Duration = 3
+				})
+			end
+		end
+	})
+	
+	settingsTab:AddButton({
+		Title = "Load Config",
+		Description = "Load saved settings",
+		Callback = function()
+			local name = MythicalUI.Options.ConfigList.Value
+			if not name then
+				return MythicalUI:Notify({
+					Title = "Error",
+					Content = "Please select a config",
+					Duration = 3
+				})
+			end
+			
+			local success, err = ConfigSystem:Load(name)
+			if success then
+				MythicalUI:Notify({
+					Title = "Success",
+					Content = "Config '" .. name .. "' loaded!",
+					Duration = 3
+				})
+			else
+				MythicalUI:Notify({
+					Title = "Error",
+					Content = "Failed: " .. err,
+					Duration = 3
+				})
+			end
+		end
+	})
+	
+	settingsTab:AddButton({
+		Title = "Refresh List",
+		Description = "Update config list",
+		Callback = function()
+			configList:SetValues(ConfigSystem:RefreshList())
+			playSound(Sounds.whoosh, 0.4, 1)
+		end
+	})
+	
+	settingsTab:AddButton({
+		Title = "Set Autoload",
+		Description = "Auto-load on startup",
+		Callback = function()
+			local name = MythicalUI.Options.ConfigList.Value
+			if not name then
+				return MythicalUI:Notify({
+					Title = "Error",
+					Content = "Please select a config",
+					Duration = 3
+				})
+			end
+			
+			writefile(ConfigSystem.Folder .. "/settings/autoload.txt", name)
+			MythicalUI:Notify({
+				Title = "Success",
+				Content = "Autoload set to '" .. name .. "'",
+				Duration = 3
+			})
+		end
+	})
 	
 	-- Entrance animation
 	mainFrame.Size = UDim2.fromScale(0, 0)
 	playSound(Sounds.open, 0.6, 1)
 	tween(mainFrame, {Size = UDim2.fromScale(0.45, 0.65)}, 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	
-	-- Select first tab
+	-- Auto-load config
+	task.delay(0.5, function()
+		ConfigSystem:LoadAutoload()
+	end)
+	
+	-- Select first user tab (not settings)
 	task.wait(0.1)
-	if #Window.Tabs > 0 then
-		local firstTab = next(Window.Tabs)
-		if firstTab then
-			Window:SelectTab(firstTab)
+	for name, _ in pairs(Window.Tabs) do
+		if name ~= "Settings" then
+			Window:SelectTab(name)
+			break
 		end
 	end
 	
@@ -1355,37 +1814,13 @@ function MythicalUI:Notify(notifyConfig)
 	notifContent.TextWrapped = true
 	notifContent.Parent = notifFrame
 	
-	-- Slide in
 	tween(notifFrame, {Position = UDim2.new(1, -310, 1, -90)}, 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	
-	-- Auto dismiss
 	task.wait(notifyConfig.Duration or 5)
 	
 	tween(notifFrame, {Position = UDim2.new(1, 10, 1, -90)}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 	task.wait(0.4)
 	notifGui:Destroy()
-end
-
--- THEME CHANGER
-function MythicalUI:SetTheme(themeName)
-	for _, theme in ipairs(Themes) do
-		if theme.name == themeName then
-			currentTheme = theme
-			playSound(Sounds.whoosh, 0.5, 1)
-			print("🎨 Theme changed to: " .. themeName)
-			-- Note: In a real implementation, you'd update all UI elements here
-			return true
-		end
-	end
-	return false
-end
-
-function MythicalUI:GetThemes()
-	local themeNames = {}
-	for _, theme in ipairs(Themes) do
-		table.insert(themeNames, theme.name)
-	end
-	return themeNames
 end
 
 return MythicalUI
