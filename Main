@@ -394,12 +394,18 @@ function MythicalUI:CreateWindow(config)
 		end
 	end)
 	
-		mainFrame.Position = UDim2.new(
-			startPos.X.Scale,
-			startPos.X.Offset + delta.X,
-			startPos.Y.Scale,
-			startPos.Y.Offset + delta.Y
-		)
+		UserInputService.InputChanged:Connect(function(input)
+			if input == dragInput and dragging then
+				local delta = input.Position - dragStart
+				mainFrame.Position = UDim2.new(
+					startPos.X.Scale,
+					startPos.X.Offset + delta.X,
+					startPos.X.Scale,
+					startPos.X.Offset + delta.Y
+				)
+			end
+		end)
+
 
 	
 	-- ADD TAB FUNCTION
