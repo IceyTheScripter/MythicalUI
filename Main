@@ -114,17 +114,17 @@ local Themes = {
 	},
 	{
 		name = "Liquid Glass",
-		primary = Color3.fromRGB(100, 200, 255),      -- Aqua/water blue
-		secondary = Color3.fromRGB(150, 220, 255),    -- Light sky blue  
-		background = Color3.fromRGB(15, 25, 40),      -- Deep ocean blue-black
-		topbar = Color3.fromRGB(25, 40, 60),          -- Slightly lighter deep blue
-		element = Color3.fromRGB(35, 55, 80),         -- Glass-tinted blue
-		text = Color3.fromRGB(220, 245, 255),         -- Ice white
-		textDim = Color3.fromRGB(120, 170, 200),      -- Faded blue-gray
-		accent = Color3.fromRGB(80, 180, 255),        -- Bright water blue
-		particleColor = Color3.fromRGB(150, 220, 255), -- Light sparkle blue
+		primary = Color3.fromRGB(0, 220, 255),        -- Bright cyan/aqua
+		secondary = Color3.fromRGB(100, 240, 255),    -- Light cyan  
+		background = Color3.fromRGB(5, 20, 30),       -- Very dark ocean blue
+		topbar = Color3.fromRGB(10, 35, 50),          -- Dark teal
+		element = Color3.fromRGB(15, 50, 70),         -- Deep teal (not grey!)
+		text = Color3.fromRGB(200, 255, 255),         -- Cyan-white
+		textDim = Color3.fromRGB(100, 200, 220),      -- Faded cyan
+		accent = Color3.fromRGB(0, 200, 255),         -- Pure cyan
+		particleColor = Color3.fromRGB(100, 255, 255), -- Bright cyan sparkles
 		isGlass = true,  -- Special flag for glass transparency effects
-		glassTransparency = 0.25  -- How transparent glass elements are
+		glassTransparency = 0.2  -- More transparent for better glass effect
 	}
 }
 
@@ -544,7 +544,6 @@ function MythicalUI:CreateWindow(config)
 		
 		playSound(Sounds.click, 0.5, 1.2)
 		tween(mainFrame, {Size = UDim2.fromScale(0, 0)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-		tween(miniButton, {Size = UDim2.new(0, 0, 0, 0)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 		task.wait(0.3)
 		screenGui:Destroy()
 	end)
