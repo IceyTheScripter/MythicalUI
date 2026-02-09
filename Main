@@ -473,23 +473,106 @@ function MythicalUI:CreateWindow(config)
 	minimizeBtnCorner.CornerRadius = UDim.new(0, 8)
 	minimizeBtnCorner.Parent = minimizeBtn
 	
+	-- Floating Mini Button (hidden by default)
+	local miniButton = Instance.new("TextButton")
+	miniButton.Name = "MiniButton"
+	miniButton.Size = UDim2.new(0, 45, 0, 45)
+	miniButton.Position = UDim2.new(0, 20, 0.5, 0)
+	miniButton.AnchorPoint = Vector2.new(0, 0.5)
+	miniButton.BackgroundColor3 = currentTheme.primary
+	miniButton.BorderSizePixel = 0
+	-- Use first letter of title or "M" for Mythical
+	local titleInitial = string.sub(config.Title or "M", 1, 1)
+	miniButton.Text = titleInitial
+	miniButton.TextColor3 = currentTheme.text
+	miniButton.TextSize = 20
+	miniButton.Font = Enum.Font.GothamBold
+	miniButton.Visible = false
+	miniButton.ZIndex = 100
+	miniButton.Parent = screenGui
+	
+	table.insert(Window._themeObjects, {obj = miniButton, prop = "BackgroundColor3", colorKey = "primary"})
+	table.insert(Window._themeObjects, {obj = miniButton, prop = "TextColor3", colorKey = "text"})
+	
+	local miniButtonCorner = Instance.new("UICorner")
+	miniButtonCorner.CornerRadius = UDim.new(0, 10)
+	miniButtonCorner.Parent = miniButton
+	
+	local miniButtonStroke = Instance.new("UIStroke")
+	miniButtonStroke.Color = currentTheme.secondary
+	miniButtonStroke.Thickness = 2
+	miniButtonStroke.Transparency = 0.3
+	miniButtonStroke.Parent = miniButton
+	
+	table.insert(Window._themeObjects, {obj = miniButtonStroke, prop = "Color", colorKey = "secondary"})
+	
+	-- Mini button dragging
+	local miniDragging, miniDragInput, miniDragStart, miniStartPos
+	
+	miniButton.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			miniDragging = true
+			miniDragStart = input.Position
+			miniStartPos = miniButton.Position
+			
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					miniDragging = false
+				end
+			end)
+		end
+	end)
+	
+	miniButton.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			miniDragInput = input
+		end
+	end)
+	
+	UserInputService.InputChanged:Connect(function(input)
+		if input == miniDragInput and miniDragging then
+			local delta = input.Position - miniDragStart
+			miniButton.Position = UDim2.new(
+				miniStartPos.X.Scale,
+				miniStartPos.X.Offset + delta.X,
+				miniStartPos.Y.Scale,
+				miniStartPos.Y.Offset + delta.Y
+			)
+		end
+	end)
+	
 	local isMinimized = false
 	Window.isMinimized = false
 	
+	-- Minimize: hide main frame, show mini button
 	minimizeBtn.MouseButton1Click:Connect(function()
-		playSound(Sounds.whoosh, 0.4, isMinimized and 1.2 or 0.8)
-		isMinimized = not isMinimized
-		Window.isMinimized = isMinimized
+		playSound(Sounds.whoosh, 0.4, 0.8)
+		isMinimized = true
+		Window.isMinimized = true
 		
-		if isMinimized then
-			Window.TabContainer.Visible = false
-			Window.ContentContainer.Visible = false
-			tween(mainFrame, {Size = UDim2.new(mainFrame.Size.X.Scale, mainFrame.Size.X.Offset, 0, 45)}, 0.3, Enum.EasingStyle.Quad)
-		else
-			Window.TabContainer.Visible = true
-			Window.ContentContainer.Visible = true
-			tween(mainFrame, {Size = UDim2.fromScale(0.45, 0.65)}, 0.3, Enum.EasingStyle.Quad)
-		end
+		tween(mainFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+		task.wait(0.3)
+		mainFrame.Visible = false
+		miniButton.Visible = true
+		miniButton.Size = UDim2.new(0, 0, 0, 0)
+		tween(miniButton, {Size = UDim2.new(0, 45, 0, 45)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	end)
+	
+	-- Restore: hide mini button, show main frame
+	miniButton.MouseButton1Click:Connect(function()
+		-- Only restore if not dragging (small movement threshold)
+		if miniDragging then return end
+		
+		playSound(Sounds.whoosh, 0.4, 1.2)
+		isMinimized = false
+		Window.isMinimized = false
+		
+		tween(miniButton, {Size = UDim2.new(0, 0, 0, 0)}, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+		task.wait(0.2)
+		miniButton.Visible = false
+		mainFrame.Visible = true
+		mainFrame.Size = UDim2.new(0, 0, 0, 0)
+		tween(mainFrame, {Size = UDim2.fromScale(0.45, 0.65)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	end)
 	
 	minimizeBtn.MouseEnter:Connect(function()
@@ -499,6 +582,17 @@ function MythicalUI:CreateWindow(config)
 	
 	minimizeBtn.MouseLeave:Connect(function()
 		tween(minimizeBtn, {BackgroundColor3 = currentTheme.element}, 0.2)
+	end)
+	
+	miniButton.MouseEnter:Connect(function()
+		playSound(Sounds.hover, 0.3, 1.1)
+		tween(miniButton, {Size = UDim2.new(0, 50, 0, 50)}, 0.2)
+		tween(miniButtonStroke, {Transparency = 0}, 0.2)
+	end)
+	
+	miniButton.MouseLeave:Connect(function()
+		tween(miniButton, {Size = UDim2.new(0, 45, 0, 45)}, 0.2)
+		tween(miniButtonStroke, {Transparency = 0.3}, 0.2)
 	end)
 	
 	-- Tab Container
