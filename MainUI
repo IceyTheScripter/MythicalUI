@@ -11,103 +11,41 @@ local CoreGui = game:GetService("CoreGui")
 
 -- THEME SYSTEM
 local Themes = {
-	{
-		name = "Purple Mystic",
-		primary = Color3.fromRGB(138, 43, 226),
-		secondary = Color3.fromRGB(186, 85, 211),
-		background = Color3.fromRGB(15, 15, 20),
-		topbar = Color3.fromRGB(20, 20, 28),
-		element = Color3.fromRGB(25, 25, 35),
-		text = Color3.fromRGB(255, 255, 255),
-		textDim = Color3.fromRGB(180, 180, 200),
-		accent = Color3.fromRGB(138, 43, 226),
-		particleColor = Color3.fromRGB(138, 43, 226)
-	},
-	{
-		name = "Matrix Green",
-		primary = Color3.fromRGB(0, 255, 65),
-		secondary = Color3.fromRGB(0, 200, 50),
-		background = Color3.fromRGB(5, 10, 5),
-		topbar = Color3.fromRGB(8, 15, 8),
-		element = Color3.fromRGB(10, 20, 10),
-		text = Color3.fromRGB(0, 255, 65),
-		textDim = Color3.fromRGB(0, 180, 40),
-		accent = Color3.fromRGB(0, 255, 65),
-		particleColor = Color3.fromRGB(0, 255, 65)
-	},
-	{
-		name = "Blood Red",
-		primary = Color3.fromRGB(220, 20, 60),
-		secondary = Color3.fromRGB(255, 50, 80),
-		background = Color3.fromRGB(20, 5, 8),
-		topbar = Color3.fromRGB(28, 8, 12),
-		element = Color3.fromRGB(35, 10, 15),
-		text = Color3.fromRGB(255, 220, 220),
-		textDim = Color3.fromRGB(200, 150, 150),
-		accent = Color3.fromRGB(220, 20, 60),
-		particleColor = Color3.fromRGB(220, 20, 60)
-	},
-	{
-		name = "Deep Sea",
-		primary = Color3.fromRGB(0, 150, 255),
-		secondary = Color3.fromRGB(50, 180, 255),
-		background = Color3.fromRGB(5, 10, 20),
-		topbar = Color3.fromRGB(8, 15, 28),
-		element = Color3.fromRGB(10, 20, 35),
-		text = Color3.fromRGB(200, 230, 255),
-		textDim = Color3.fromRGB(150, 180, 200),
-		accent = Color3.fromRGB(0, 150, 255),
-		particleColor = Color3.fromRGB(0, 150, 255)
-	},
-	{
-		name = "Toxic Lime",
-		primary = Color3.fromRGB(190, 255, 0),
-		secondary = Color3.fromRGB(150, 220, 0),
-		background = Color3.fromRGB(10, 15, 5),
-		topbar = Color3.fromRGB(15, 20, 8),
-		element = Color3.fromRGB(20, 25, 10),
-		text = Color3.fromRGB(220, 255, 180),
-		textDim = Color3.fromRGB(180, 200, 140),
-		accent = Color3.fromRGB(190, 255, 0),
-		particleColor = Color3.fromRGB(190, 255, 0)
-	},
-	{
-		name = "Cyber Pink",
-		primary = Color3.fromRGB(255, 20, 147),
-		secondary = Color3.fromRGB(255, 105, 180),
-		background = Color3.fromRGB(20, 5, 15),
-		topbar = Color3.fromRGB(28, 8, 20),
-		element = Color3.fromRGB(35, 10, 25),
-		text = Color3.fromRGB(255, 220, 240),
-		textDim = Color3.fromRGB(200, 150, 180),
-		accent = Color3.fromRGB(255, 20, 147),
-		particleColor = Color3.fromRGB(255, 20, 147)
-	},
-	{
-		name = "Electric Blue",
-		primary = Color3.fromRGB(0, 255, 255),
-		secondary = Color3.fromRGB(50, 200, 255),
-		background = Color3.fromRGB(5, 12, 18),
-		topbar = Color3.fromRGB(8, 18, 25),
-		element = Color3.fromRGB(10, 22, 30),
-		text = Color3.fromRGB(200, 245, 255),
-		textDim = Color3.fromRGB(150, 200, 220),
-		accent = Color3.fromRGB(0, 255, 255),
-		particleColor = Color3.fromRGB(0, 255, 255)
-	},
-	{
-		name = "Inferno Orange",
-		primary = Color3.fromRGB(255, 100, 0),
-		secondary = Color3.fromRGB(255, 150, 50),
-		background = Color3.fromRGB(20, 10, 5),
-		topbar = Color3.fromRGB(28, 15, 8),
-		element = Color3.fromRGB(35, 18, 10),
-		text = Color3.fromRGB(255, 230, 200),
-		textDim = Color3.fromRGB(200, 170, 140),
-		accent = Color3.fromRGB(255, 100, 0),
-		particleColor = Color3.fromRGB(255, 100, 0)
-	}
+    ["Purple"] = {
+        Accent = Color3.fromRGB(140, 0, 255),
+        Main = Color3.fromRGB(20, 15, 30),
+        Text = Color3.fromRGB(240, 240, 240),
+        SectionText = Color3.fromRGB(200, 180, 220),
+        ElementBackground = Color3.fromRGB(30, 25, 45),
+        ElementTransparency = 0.2
+    },
+    ["Green (Matrix)"] = {
+        Accent = Color3.fromRGB(0, 255, 70),
+        Main = Color3.fromRGB(5, 15, 5),
+        Text = Color3.fromRGB(0, 255, 100),
+        SectionText = Color3.fromRGB(0, 200, 50),
+        ElementBackground = Color3.fromRGB(10, 25, 10),
+        ElementTransparency = 0.3
+    },
+    ["Red (Blood)"] = {
+        Accent = Color3.fromRGB(180, 0, 0),
+        Main = Color3.fromRGB(15, 5, 5),
+        Text = Color3.fromRGB(255, 80, 80),
+        SectionText = Color3.fromRGB(150, 0, 0),
+        ElementBackground = Color3.fromRGB(25, 10, 10),
+        ElementTransparency = 0.1
+    },
+    ["Blue (Calm)"] = {
+        Accent = Color3.fromRGB(0, 120, 255),
+        Main = Color3.fromRGB(10, 15, 25),
+        Text = Color3.fromRGB(200, 220, 255),
+        SectionText = Color3.fromRGB(80, 140, 200),
+        ElementBackground = Color3.fromRGB(15, 25, 40),
+        ElementTransparency = 0.2
+    }
 }
+
+return Themes
 
 local currentTheme = Themes[1]
 
